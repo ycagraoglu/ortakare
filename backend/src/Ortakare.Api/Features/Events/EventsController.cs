@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.Events.CreateEvent;
+using Ortakare.Api.Features.Events.GetEvent;
 using Ortakare.Api.Features.Events.GetMyEvents;
 
 namespace Ortakare.Api.Features.Events;
@@ -11,7 +12,8 @@ namespace Ortakare.Api.Features.Events;
 [Route("api/events")]
 public sealed class EventsController(
     CreateEventHandler createEventHandler,
-    GetMyEventsHandler getMyEventsHandler) : ControllerBase
+    GetMyEventsHandler getMyEventsHandler,
+    GetEventHandler getEventHandler) : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType(typeof(ApiResult<CreateEventResponse>), StatusCodes.Status201Created)]
@@ -34,6 +36,18 @@ public sealed class EventsController(
         CancellationToken cancellationToken)
     {
         var result = await getMyEventsHandler.HandleAsync(request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("{eventId:guid}")]
+    [ProducesResponseType(typeof(ApiResult<GetEventResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetEvent(
+        Guid eventId,
+        CancellationToken cancellationToken)
+    {
+        var result = await getEventHandler.HandleAsync(eventId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
