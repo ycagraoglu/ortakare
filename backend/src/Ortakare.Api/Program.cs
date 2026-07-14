@@ -1,13 +1,32 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
+using Ortakare.Api.Common;
 using Ortakare.Api.Extensions;
 using Ortakare.Api.Infrastructure.Persistence;
 using Ortakare.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var message = string.Join(" ", context.ModelState.Values
+                .SelectMany(x => x.Errors)
+                .Select(x => x.ErrorMessage)
+                .Where(x => !string.IsNullOrWhiteSpace(x)));
+
+            var result = ApiResult.Failure(
+                string.IsNullOrWhiteSpace(message) ? "Gönderilen bilgiler geçersiz." : message,
+                StatusCodes.Status400BadRequest);
+
+            return new BadRequestObjectResult(result);
+        };
+    });
+
 builder.Services.AddOpenApi();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
