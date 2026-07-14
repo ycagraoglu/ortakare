@@ -10,6 +10,7 @@ using Ortakare.Api.Features.Events.UpdateEvent;
 using Ortakare.Api.Features.Participants;
 using Ortakare.Api.Features.Participants.GetEventParticipants;
 using Ortakare.Api.Features.Participants.JoinEvent;
+using Ortakare.Api.Features.Participants.UpdateParticipantDisplayName;
 using Ortakare.Api.Features.Photos.DeleteGuestPhoto;
 using Ortakare.Api.Features.Photos.DeleteOwnerPhoto;
 using Ortakare.Api.Features.Photos.GetEventPhotos;
@@ -37,6 +38,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<GetPublicEventHandler>();
         services.AddScoped<JoinEventHandler>();
         services.AddScoped<GetEventParticipantsHandler>();
+        services.AddScoped<UpdateParticipantDisplayNameHandler>();
         services.AddScoped<UploadPhotoHandler>();
         services.AddScoped<GetEventPhotosHandler>();
         services.AddScoped<DeleteOwnerPhotoHandler>();
