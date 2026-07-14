@@ -2,15 +2,19 @@ using System.Text;
 using Amazon.S3;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Ortakare.Api.Common;
 using Ortakare.Api.Extensions;
+using Ortakare.Api.Features.GalleryExports;
 using Ortakare.Api.Features.Photos.UploadPhoto;
 using Ortakare.Api.Infrastructure.Authentication;
+using Ortakare.Api.Infrastructure.BackgroundJobs;
 using Ortakare.Api.Infrastructure.ObjectStorage;
 using Ortakare.Api.Infrastructure.Persistence;
 using Ortakare.Api.Middleware;
@@ -83,6 +87,21 @@ var connectionString = builder.Configuration.GetConnectionString("PostgreSql")
 
 builder.Services.AddDbContext<OrtakareDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);
+if (hangfireEnabled)
+{
+    builder.Services.AddHangfire(configuration =>
+        configuration.UsePostgreSqlStorage(options =>
+            options.UseNpgsqlConnection(connectionString)));
+
+    builder.Services.AddHangfireServer(options =>
+    {
+        options.WorkerCount = builder.Configuration.GetValue("Hangfire:WorkerCount", 2);
+    });
+
+    builder.Services.AddScoped<IGalleryExportJobScheduler, HangfireGalleryExportJobScheduler>();
+}
 
 builder.Services
     .AddOptions<JwtOptions>()
