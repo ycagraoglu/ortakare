@@ -44,6 +44,21 @@ public partial class OrtakareDbContextModelSnapshot : ModelSnapshot
             entity.ToTable("Events");
         });
 
+        modelBuilder.Entity("Ortakare.Api.Features.GalleryExports.GalleryExport", entity =>
+        {
+            entity.Property<Guid>("Id").ValueGeneratedNever().HasColumnType("uuid");
+            entity.Property<DateTime?>("CompletedAtUtc").HasColumnType("timestamp with time zone");
+            entity.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+            entity.Property<Guid>("EventId").HasColumnType("uuid");
+            entity.Property<DateTime?>("FailedAtUtc").HasColumnType("timestamp with time zone");
+            entity.Property<int>("PhotoCount").HasColumnType("integer");
+            entity.Property<string>("Status").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)");
+            entity.Property<string>("StorageKey").HasMaxLength(500).HasColumnType("character varying(500)");
+            entity.HasKey("Id");
+            entity.HasIndex("EventId", "CreatedAtUtc");
+            entity.ToTable("GalleryExports");
+        });
+
         modelBuilder.Entity("Ortakare.Api.Features.Participants.EventGuestParticipant", entity =>
         {
             entity.Property<Guid>("Id").ValueGeneratedNever().HasColumnType("uuid");
@@ -89,35 +104,23 @@ public partial class OrtakareDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("Ortakare.Api.Features.Events.Event", entity =>
         {
-            entity.HasOne("Ortakare.Api.Features.Users.User", null)
-                .WithMany()
-                .HasForeignKey("OwnerUserId")
-                .OnDelete(DeleteBehavior.Cascade)
-                .IsRequired();
+            entity.HasOne("Ortakare.Api.Features.Users.User", null).WithMany().HasForeignKey("OwnerUserId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+        });
+
+        modelBuilder.Entity("Ortakare.Api.Features.GalleryExports.GalleryExport", entity =>
+        {
+            entity.HasOne("Ortakare.Api.Features.Events.Event", null).WithMany().HasForeignKey("EventId").OnDelete(DeleteBehavior.Cascade).IsRequired();
         });
 
         modelBuilder.Entity("Ortakare.Api.Features.Participants.EventGuestParticipant", entity =>
         {
-            entity.HasOne("Ortakare.Api.Features.Events.Event", null)
-                .WithMany()
-                .HasForeignKey("EventId")
-                .OnDelete(DeleteBehavior.Cascade)
-                .IsRequired();
+            entity.HasOne("Ortakare.Api.Features.Events.Event", null).WithMany().HasForeignKey("EventId").OnDelete(DeleteBehavior.Cascade).IsRequired();
         });
 
         modelBuilder.Entity("Ortakare.Api.Features.Photos.EventGuestPhoto", entity =>
         {
-            entity.HasOne("Ortakare.Api.Features.Events.Event", null)
-                .WithMany()
-                .HasForeignKey("EventId")
-                .OnDelete(DeleteBehavior.Cascade)
-                .IsRequired();
-
-            entity.HasOne("Ortakare.Api.Features.Participants.EventGuestParticipant", null)
-                .WithMany()
-                .HasForeignKey("ParticipantId")
-                .OnDelete(DeleteBehavior.Cascade)
-                .IsRequired();
+            entity.HasOne("Ortakare.Api.Features.Events.Event", null).WithMany().HasForeignKey("EventId").OnDelete(DeleteBehavior.Cascade).IsRequired();
+            entity.HasOne("Ortakare.Api.Features.Participants.EventGuestParticipant", null).WithMany().HasForeignKey("ParticipantId").OnDelete(DeleteBehavior.Cascade).IsRequired();
         });
     }
 }
