@@ -44,6 +44,19 @@ public partial class OrtakareDbContextModelSnapshot : ModelSnapshot
             entity.ToTable("Events");
         });
 
+        modelBuilder.Entity("Ortakare.Api.Features.Participants.EventGuestParticipant", entity =>
+        {
+            entity.Property<Guid>("Id").ValueGeneratedNever().HasColumnType("uuid");
+            entity.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+            entity.Property<string>("DisplayName").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
+            entity.Property<Guid>("EventId").HasColumnType("uuid");
+            entity.Property<string>("TokenHash").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+            entity.HasKey("Id");
+            entity.HasIndex("EventId", "CreatedAtUtc");
+            entity.HasIndex("TokenHash").IsUnique();
+            entity.ToTable("EventGuestParticipants");
+        });
+
         modelBuilder.Entity("Ortakare.Api.Features.Users.User", entity =>
         {
             entity.Property<Guid>("Id").ValueGeneratedNever().HasColumnType("uuid");
@@ -62,6 +75,15 @@ public partial class OrtakareDbContextModelSnapshot : ModelSnapshot
             entity.HasOne("Ortakare.Api.Features.Users.User", null)
                 .WithMany()
                 .HasForeignKey("OwnerUserId")
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+        });
+
+        modelBuilder.Entity("Ortakare.Api.Features.Participants.EventGuestParticipant", entity =>
+        {
+            entity.HasOne("Ortakare.Api.Features.Events.Event", null)
+                .WithMany()
+                .HasForeignKey("EventId")
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
         });
