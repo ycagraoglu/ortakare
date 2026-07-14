@@ -37,6 +37,7 @@ public partial class OrtakareDbContextModelSnapshot : ModelSnapshot
             entity.Property<Guid>("OwnerUserId").HasColumnType("uuid");
             entity.Property<string>("Title").IsRequired().HasMaxLength(150).HasColumnType("character varying(150)");
             entity.Property<bool>("UploadsEnabled").HasColumnType("boolean");
+            entity.Property<DateTime?>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
             entity.HasKey("Id");
             entity.HasIndex("GalleryToken").IsUnique();
             entity.HasIndex("OwnerUserId", "EventDateUtc");
