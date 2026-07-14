@@ -7,6 +7,7 @@ using Ortakare.Api.Features.Events.CreateEvent;
 using Ortakare.Api.Features.Events.GetEvent;
 using Ortakare.Api.Features.Events.GetMyEvents;
 using Ortakare.Api.Features.Events.UpdateEvent;
+using Ortakare.Api.Features.PublicEvents.GetPublicEvent;
 using Ortakare.Api.Features.System.Health;
 using Ortakare.Api.Features.Users;
 using Ortakare.Api.Infrastructure.Authentication;
@@ -26,6 +27,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<GetEventHandler>();
         services.AddScoped<UpdateEventHandler>();
         services.AddScoped<CloseEventHandler>();
+        services.AddScoped<GetPublicEventHandler>();
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddSingleton<IAccessTokenService, JwtAccessTokenService>();
