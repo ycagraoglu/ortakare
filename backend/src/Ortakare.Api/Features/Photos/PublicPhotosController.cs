@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
+using Ortakare.Api.Features.Photos.DeleteGuestPhoto;
 using Ortakare.Api.Features.Photos.UploadPhoto;
 
 namespace Ortakare.Api.Features.Photos;
@@ -8,7 +9,9 @@ namespace Ortakare.Api.Features.Photos;
 [ApiController]
 [AllowAnonymous]
 [Route("api/public/events/{galleryToken}/photos")]
-public sealed class PublicPhotosController(UploadPhotoHandler uploadPhotoHandler) : ControllerBase
+public sealed class PublicPhotosController(
+    UploadPhotoHandler uploadPhotoHandler,
+    DeleteGuestPhotoHandler deleteGuestPhotoHandler) : ControllerBase
 {
     [HttpPost]
     [Consumes("multipart/form-data")]
@@ -30,6 +33,25 @@ public sealed class PublicPhotosController(UploadPhotoHandler uploadPhotoHandler
             participantToken,
             clientUploadId,
             request,
+            cancellationToken);
+
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpDelete("{photoId:guid}")]
+    [ProducesResponseType(typeof(ApiResult<DeleteGuestPhotoResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(
+        string galleryToken,
+        Guid photoId,
+        [FromHeader(Name = "X-Participant-Token")] string participantToken,
+        CancellationToken cancellationToken)
+    {
+        var result = await deleteGuestPhotoHandler.HandleAsync(
+            galleryToken,
+            participantToken,
+            photoId,
             cancellationToken);
 
         return StatusCode(result.StatusCode, result);
