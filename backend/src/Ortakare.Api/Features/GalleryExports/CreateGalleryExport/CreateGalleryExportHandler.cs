@@ -8,7 +8,8 @@ namespace Ortakare.Api.Features.GalleryExports.CreateGalleryExport;
 public sealed class CreateGalleryExportHandler(
     OrtakareDbContext dbContext,
     ICurrentUser currentUser,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    IGalleryExportJobScheduler jobScheduler)
 {
     public async Task<ApiResult<CreateGalleryExportResponse>> HandleAsync(
         Guid eventId,
@@ -50,6 +51,8 @@ public sealed class CreateGalleryExportHandler(
 
         dbContext.GalleryExports.Add(galleryExport);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        jobScheduler.Enqueue(galleryExport.Id);
 
         return ApiResult<CreateGalleryExportResponse>.Success(
             new CreateGalleryExportResponse(
