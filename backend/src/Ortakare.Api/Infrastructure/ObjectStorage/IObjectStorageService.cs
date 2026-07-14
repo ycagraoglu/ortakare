@@ -10,4 +10,6 @@ public interface IObjectStorageService
         CancellationToken cancellationToken);
 
     Task DeleteAsync(string key, CancellationToken cancellationToken);
+
+    string CreateReadUrl(string key, DateTime expiresAtUtc);
 }
