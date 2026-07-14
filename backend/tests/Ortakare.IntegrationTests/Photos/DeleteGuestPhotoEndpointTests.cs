@@ -7,6 +7,7 @@ using Ortakare.Api.Features.Events;
 using Ortakare.Api.Features.Participants;
 using Ortakare.Api.Features.Photos;
 using Ortakare.Api.Features.Photos.DeleteGuestPhoto;
+using Ortakare.Api.Features.Users;
 using Ortakare.Api.Infrastructure.Persistence;
 
 namespace Ortakare.IntegrationTests.Photos;
@@ -111,8 +112,9 @@ public sealed class DeleteGuestPhotoEndpointTests : IClassFixture<OrtakareApiFac
 
     private async Task<SeededGuestPhoto> SeedPhotoAsync(CancellationToken cancellationToken)
     {
-        const string ownerParticipantToken = "owner-participant-token";
-        const string otherParticipantToken = "other-participant-token";
+        var ownerParticipantToken = $"owner-{Guid.NewGuid():N}";
+        var otherParticipantToken = $"other-{Guid.NewGuid():N}";
+        var ownerUserId = Guid.CreateVersion7();
         var eventId = Guid.CreateVersion7();
         var ownerParticipantId = Guid.CreateVersion7();
         var otherParticipantId = Guid.CreateVersion7();
@@ -121,15 +123,25 @@ public sealed class DeleteGuestPhotoEndpointTests : IClassFixture<OrtakareApiFac
         var storageKey = $"events/{eventId}/participants/{ownerParticipantId}/{Guid.NewGuid()}";
         var now = DateTime.UtcNow;
         var tokenService = new ParticipantTokenService();
+        var email = $"guest-delete-{Guid.NewGuid():N}@example.com";
 
         using var scope = _factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<OrtakareDbContext>();
-        var ownerUser = await dbContext.Users.FirstAsync(cancellationToken);
+
+        dbContext.Users.Add(new User
+        {
+            Id = ownerUserId,
+            DisplayName = "Guest Delete Owner",
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            PasswordHash = "not-used-in-this-test",
+            CreatedAtUtc = now
+        });
 
         dbContext.Events.Add(new Event
         {
             Id = eventId,
-            OwnerUserId = ownerUser.Id,
+            OwnerUserId = ownerUserId,
             Title = "Guest Delete Event",
             EventDateUtc = now.AddDays(1),
             GalleryToken = galleryToken,
