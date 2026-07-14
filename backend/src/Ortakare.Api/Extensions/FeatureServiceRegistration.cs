@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Ortakare.Api.Features.Auth.Login;
+using Ortakare.Api.Features.Auth.Refresh;
 using Ortakare.Api.Features.Auth.Register;
 using Ortakare.Api.Features.System.Health;
 using Ortakare.Api.Features.Users;
@@ -14,8 +15,11 @@ public static class FeatureServiceRegistration
         services.AddScoped<GetHealthHandler>();
         services.AddScoped<RegisterHandler>();
         services.AddScoped<LoginHandler>();
+        services.AddScoped<RefreshHandler>();
+
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-        services.AddScoped<IAccessTokenService, JwtAccessTokenService>();
+        services.AddSingleton<IAccessTokenService, JwtAccessTokenService>();
+        services.AddSingleton<IRefreshTokenService, RefreshTokenService>();
 
         return services;
     }
