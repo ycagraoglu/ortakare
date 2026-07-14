@@ -20,6 +20,7 @@ using Ortakare.Api.Features.PublicEvents.GetPublicEvent;
 using Ortakare.Api.Features.System.Health;
 using Ortakare.Api.Features.Users;
 using Ortakare.Api.Infrastructure.Authentication;
+using Ortakare.Api.Infrastructure.BackgroundJobs;
 
 namespace Ortakare.Api.Extensions;
 
@@ -45,6 +46,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<DeleteOwnerPhotoHandler>();
         services.AddScoped<DeleteGuestPhotoHandler>();
         services.AddScoped<CreateGalleryExportHandler>();
+        services.AddScoped<BuildGalleryExportJob>();
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddSingleton<IAccessTokenService, JwtAccessTokenService>();
