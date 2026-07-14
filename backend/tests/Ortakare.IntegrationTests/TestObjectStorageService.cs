@@ -10,6 +10,7 @@ public sealed class TestObjectStorageService : IObjectStorageService
     public int UploadCount { get; private set; }
     public int DeleteCount { get; private set; }
     public bool ThrowOnDelete { get; set; }
+    public bool ThrowOnRead { get; set; }
 
     public IReadOnlyDictionary<string, StoredObject> Objects => _objects;
 
@@ -29,6 +30,22 @@ public sealed class TestObjectStorageService : IObjectStorageService
             contentLength);
 
         UploadCount++;
+    }
+
+    public Task<Stream> OpenReadAsync(string key, CancellationToken cancellationToken)
+    {
+        if (ThrowOnRead)
+        {
+            throw new InvalidOperationException("Simulated object storage read failure.");
+        }
+
+        if (!_objects.TryGetValue(key, out var storedObject))
+        {
+            throw new FileNotFoundException("Stored object was not found.", key);
+        }
+
+        Stream stream = new MemoryStream(storedObject.Content, writable: false);
+        return Task.FromResult(stream);
     }
 
     public Task DeleteAsync(string key, CancellationToken cancellationToken)
@@ -52,6 +69,7 @@ public sealed class TestObjectStorageService : IObjectStorageService
         UploadCount = 0;
         DeleteCount = 0;
         ThrowOnDelete = false;
+        ThrowOnRead = false;
     }
 }
 
