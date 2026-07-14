@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Ortakare.Api.Features.Auth.Login;
 using Ortakare.Api.Features.Auth.Refresh;
 using Ortakare.Api.Features.Auth.Register;
+using Ortakare.Api.Features.Events.CloseEvent;
 using Ortakare.Api.Features.Events.CreateEvent;
 using Ortakare.Api.Features.Events.GetEvent;
 using Ortakare.Api.Features.Events.GetMyEvents;
@@ -24,6 +25,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<GetMyEventsHandler>();
         services.AddScoped<GetEventHandler>();
         services.AddScoped<UpdateEventHandler>();
+        services.AddScoped<CloseEventHandler>();
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddSingleton<IAccessTokenService, JwtAccessTokenService>();
