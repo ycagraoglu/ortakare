@@ -12,6 +12,45 @@ public partial class OrtakareDbContextModelSnapshot : ModelSnapshot
     {
         modelBuilder.HasAnnotation("ProductVersion", "10.0.0");
 
+        modelBuilder.Entity("Ortakare.Api.Features.Auth.RefreshTokens.RefreshToken", entity =>
+        {
+            entity.Property<Guid>("Id")
+                .ValueGeneratedNever()
+                .HasColumnType("uuid");
+
+            entity.Property<DateTime>("CreatedAtUtc")
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property<DateTime>("ExpiresAtUtc")
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property<Guid?>("ReplacedByTokenId")
+                .HasColumnType("uuid");
+
+            entity.Property<DateTime?>("RevokedAtUtc")
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property<string>("TokenHash")
+                .IsRequired()
+                .HasMaxLength(64)
+                .HasColumnType("character varying(64)");
+
+            entity.Property<DateTime?>("UsedAtUtc")
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property<Guid>("UserId")
+                .HasColumnType("uuid");
+
+            entity.HasKey("Id");
+
+            entity.HasIndex("TokenHash")
+                .IsUnique();
+
+            entity.HasIndex("UserId", "ExpiresAtUtc");
+
+            entity.ToTable("RefreshTokens");
+        });
+
         modelBuilder.Entity("Ortakare.Api.Features.Users.User", entity =>
         {
             entity.Property<Guid>("Id")
