@@ -9,4 +9,5 @@ public sealed class Event
     public string GalleryToken { get; set; } = string.Empty;
     public bool UploadsEnabled { get; set; }
     public DateTime CreatedAtUtc { get; set; }
+    public DateTime? UpdatedAtUtc { get; set; }
 }
