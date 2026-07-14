@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Ortakare.Api.Features.Auth.RefreshTokens;
 using Ortakare.Api.Features.Users;
 
 namespace Ortakare.Api.Infrastructure.Persistence;
@@ -7,6 +8,7 @@ public sealed class OrtakareDbContext(DbContextOptions<OrtakareDbContext> option
     : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
