@@ -10,7 +10,8 @@ namespace Ortakare.Api.Features.Auth.Login;
 public sealed class LoginHandler(
     OrtakareDbContext dbContext,
     IPasswordHasher<User> passwordHasher,
-    IAccessTokenService accessTokenService)
+    IAccessTokenService accessTokenService,
+    IRefreshTokenService refreshTokenService)
 {
     public async Task<ApiResult<LoginResponse>> HandleAsync(
         LoginRequest request,
@@ -44,11 +45,17 @@ public sealed class LoginHandler(
         }
 
         var accessToken = accessTokenService.Create(user);
+        var refreshToken = refreshTokenService.Create(user.Id);
+
+        dbContext.RefreshTokens.Add(refreshToken.Entity);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return ApiResult<LoginResponse>.Success(
             new LoginResponse(
                 accessToken.Value,
                 accessToken.ExpiresAtUtc,
+                refreshToken.Value,
+                refreshToken.Entity.ExpiresAtUtc,
                 user.Id,
                 user.DisplayName,
                 user.Email));
