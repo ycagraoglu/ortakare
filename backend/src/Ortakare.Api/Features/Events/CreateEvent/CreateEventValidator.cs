@@ -12,6 +12,8 @@ public sealed class CreateEventValidator : AbstractValidator<CreateEventRequest>
             .MaximumLength(150);
 
         RuleFor(x => x.EventDateUtc)
-            .NotEmpty();
+            .NotEmpty()
+            .Must(x => x.Kind == DateTimeKind.Utc)
+            .WithMessage("Etkinlik tarihi UTC formatında gönderilmelidir.");
     }
 }
