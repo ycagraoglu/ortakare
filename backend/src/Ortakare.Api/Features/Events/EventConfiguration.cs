@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Ortakare.Api.Features.Users;
 
 namespace Ortakare.Api.Features.Events;
 
@@ -23,5 +24,10 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<Event>
             .IsUnique();
 
         builder.HasIndex(x => new { x.OwnerUserId, x.EventDateUtc });
+
+        builder.HasOne<User>()
+            .WithMany()
+            .HasForeignKey(x => x.OwnerUserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
