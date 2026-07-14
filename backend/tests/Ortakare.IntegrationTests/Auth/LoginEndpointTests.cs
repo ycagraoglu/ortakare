@@ -16,7 +16,7 @@ public sealed class LoginEndpointTests : IClassFixture<OrtakareApiFactory>
     }
 
     [Fact]
-    public async Task Login_returns_access_token_for_valid_credentials(
+    public async Task Login_returns_tokens_for_valid_credentials(
         CancellationToken cancellationToken)
     {
         var email = $"login-{Guid.NewGuid():N}@example.com";
@@ -43,7 +43,9 @@ public sealed class LoginEndpointTests : IClassFixture<OrtakareApiFactory>
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Data);
         Assert.False(string.IsNullOrWhiteSpace(result.Data.AccessToken));
-        Assert.True(result.Data.ExpiresAtUtc > DateTime.UtcNow);
+        Assert.False(string.IsNullOrWhiteSpace(result.Data.RefreshToken));
+        Assert.True(result.Data.AccessTokenExpiresAtUtc > DateTime.UtcNow);
+        Assert.True(result.Data.RefreshTokenExpiresAtUtc > result.Data.AccessTokenExpiresAtUtc);
         Assert.Equal(email, result.Data.Email);
     }
 
