@@ -1,12 +1,17 @@
 using System.Text;
+using Amazon.S3;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 using Ortakare.Api.Common;
 using Ortakare.Api.Extensions;
+using Ortakare.Api.Features.Photos.UploadPhoto;
 using Ortakare.Api.Infrastructure.Authentication;
+using Ortakare.Api.Infrastructure.ObjectStorage;
 using Ortakare.Api.Infrastructure.Persistence;
 using Ortakare.Api.Middleware;
 
@@ -36,6 +41,42 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddFeatureHandlers();
+
+builder.Services
+    .AddOptions<PhotoUploadOptions>()
+    .BindConfiguration(PhotoUploadOptions.SectionName)
+    .Validate(x => x.MaxFileSizeBytes is > 0 and <= 100 * 1024 * 1024,
+        "PhotoUpload:MaxFileSizeBytes must be between 1 byte and 100 MB.")
+    .ValidateOnStart();
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    var configuredLimit = builder.Configuration
+        .GetSection(PhotoUploadOptions.SectionName)
+        .GetValue<long?>(nameof(PhotoUploadOptions.MaxFileSizeBytes))
+        ?? 25 * 1024 * 1024;
+
+    options.MultipartBodyLengthLimit = configuredLimit + 1024 * 1024;
+});
+
+builder.Services
+    .AddOptions<ObjectStorageOptions>()
+    .BindConfiguration(ObjectStorageOptions.SectionName);
+
+builder.Services.AddSingleton<IAmazonS3>(serviceProvider =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<ObjectStorageOptions>>().Value;
+    var config = new AmazonS3Config
+    {
+        ServiceURL = options.ServiceUrl,
+        ForcePathStyle = true,
+        AuthenticationRegion = "auto"
+    };
+
+    return new AmazonS3Client(options.AccessKey, options.SecretKey, config);
+});
+
+builder.Services.AddScoped<IObjectStorageService, R2ObjectStorageService>();
 
 var connectionString = builder.Configuration.GetConnectionString("PostgreSql")
     ?? throw new InvalidOperationException("ConnectionStrings:PostgreSql is required.");
