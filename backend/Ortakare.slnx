@@ -1,8 +1,6 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Ortakare.Api/Ortakare.Api.csproj" />
-    <Project Path="src/Ortakare.Domain/Ortakare.Domain.csproj" />
-    <Project Path="src/Ortakare.Infrastructure/Ortakare.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Ortakare.IntegrationTests/Ortakare.IntegrationTests.csproj" />
