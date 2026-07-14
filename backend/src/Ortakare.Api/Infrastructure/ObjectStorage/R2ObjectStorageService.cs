@@ -31,6 +31,21 @@ public sealed class R2ObjectStorageService(
         await s3Client.PutObjectAsync(request, cancellationToken);
     }
 
+    public async Task<Stream> OpenReadAsync(
+        string key,
+        CancellationToken cancellationToken)
+    {
+        var response = await s3Client.GetObjectAsync(
+            new GetObjectRequest
+            {
+                BucketName = _options.BucketName,
+                Key = key
+            },
+            cancellationToken);
+
+        return new S3ResponseStream(response);
+    }
+
     public Task DeleteAsync(string key, CancellationToken cancellationToken) =>
         s3Client.DeleteObjectAsync(
             new DeleteObjectRequest
@@ -48,4 +63,41 @@ public sealed class R2ObjectStorageService(
             Verb = HttpVerb.GET,
             Expires = expiresAtUtc
         });
+
+    private sealed class S3ResponseStream(GetObjectResponse response) : Stream
+    {
+        private readonly Stream _inner = response.ResponseStream;
+
+        public override bool CanRead => _inner.CanRead;
+        public override bool CanSeek => _inner.CanSeek;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+        public override long Position { get => _inner.Position; set => _inner.Position = value; }
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => _inner.Seek(offset, origin);
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override Task FlushAsync(CancellationToken cancellationToken) => _inner.FlushAsync(cancellationToken);
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+            _inner.ReadAsync(buffer, cancellationToken);
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _inner.Dispose();
+                response.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        public override async ValueTask DisposeAsync()
+        {
+            await _inner.DisposeAsync();
+            response.Dispose();
+            GC.SuppressFinalize(this);
+        }
+    }
 }
