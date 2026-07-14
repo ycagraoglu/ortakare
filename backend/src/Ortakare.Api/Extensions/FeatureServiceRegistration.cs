@@ -9,6 +9,7 @@ using Ortakare.Api.Features.Events.GetMyEvents;
 using Ortakare.Api.Features.Events.UpdateEvent;
 using Ortakare.Api.Features.Participants;
 using Ortakare.Api.Features.Participants.JoinEvent;
+using Ortakare.Api.Features.Photos.DeleteOwnerPhoto;
 using Ortakare.Api.Features.Photos.GetEventPhotos;
 using Ortakare.Api.Features.Photos.UploadPhoto;
 using Ortakare.Api.Features.PublicEvents.GetPublicEvent;
@@ -35,6 +36,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<JoinEventHandler>();
         services.AddScoped<UploadPhotoHandler>();
         services.AddScoped<GetEventPhotosHandler>();
+        services.AddScoped<DeleteOwnerPhotoHandler>();
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddSingleton<IAccessTokenService, JwtAccessTokenService>();
