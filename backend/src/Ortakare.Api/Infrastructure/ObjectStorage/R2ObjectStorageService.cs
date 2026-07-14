@@ -39,4 +39,13 @@ public sealed class R2ObjectStorageService(
                 Key = key
             },
             cancellationToken);
+
+    public string CreateReadUrl(string key, DateTime expiresAtUtc) =>
+        s3Client.GetPreSignedURL(new GetPreSignedUrlRequest
+        {
+            BucketName = _options.BucketName,
+            Key = key,
+            Verb = HttpVerb.GET,
+            Expires = expiresAtUtc
+        });
 }
