@@ -8,6 +8,8 @@ public sealed class TestObjectStorageService : IObjectStorageService
     private readonly ConcurrentDictionary<string, StoredObject> _objects = new();
 
     public int UploadCount { get; private set; }
+    public int DeleteCount { get; private set; }
+    public bool ThrowOnDelete { get; set; }
 
     public IReadOnlyDictionary<string, StoredObject> Objects => _objects;
 
@@ -31,7 +33,13 @@ public sealed class TestObjectStorageService : IObjectStorageService
 
     public Task DeleteAsync(string key, CancellationToken cancellationToken)
     {
+        if (ThrowOnDelete)
+        {
+            throw new InvalidOperationException("Simulated object storage delete failure.");
+        }
+
         _objects.TryRemove(key, out _);
+        DeleteCount++;
         return Task.CompletedTask;
     }
 
@@ -42,6 +50,8 @@ public sealed class TestObjectStorageService : IObjectStorageService
     {
         _objects.Clear();
         UploadCount = 0;
+        DeleteCount = 0;
+        ThrowOnDelete = false;
     }
 }
 
