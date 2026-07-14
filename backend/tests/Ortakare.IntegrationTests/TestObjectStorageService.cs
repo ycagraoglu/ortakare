@@ -35,6 +35,9 @@ public sealed class TestObjectStorageService : IObjectStorageService
         return Task.CompletedTask;
     }
 
+    public string CreateReadUrl(string key, DateTime expiresAtUtc) =>
+        $"https://storage.test/{Uri.EscapeDataString(key)}?expires={Uri.EscapeDataString(expiresAtUtc.ToString("O"))}";
+
     public void Reset()
     {
         _objects.Clear();
