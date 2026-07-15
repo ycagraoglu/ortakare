@@ -35,6 +35,13 @@ public sealed class UpdateParticipantDisplayNameHandler(
                 StatusCodes.Status401Unauthorized);
         }
 
+        if (participant.IsBlocked)
+        {
+            return ApiResult<UpdateParticipantDisplayNameResponse>.Failure(
+                "Bu katılımcının erişimi engellendi.",
+                StatusCodes.Status403Forbidden);
+        }
+
         participant.DisplayName = request.DisplayName.Trim();
         await dbContext.SaveChangesAsync(cancellationToken);
 
