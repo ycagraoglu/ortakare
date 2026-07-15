@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.GalleryExports.CreateGalleryExport;
+using Ortakare.Api.Features.GalleryExports.DeleteGalleryExport;
 using Ortakare.Api.Features.GalleryExports.GetEventExports;
 using Ortakare.Api.Features.GalleryExports.GetGalleryExport;
 using Ortakare.Api.Features.GalleryExports.RetryFailedGalleryExport;
@@ -15,7 +16,8 @@ public sealed class GalleryExportsController(
     CreateGalleryExportHandler createGalleryExportHandler,
     GetGalleryExportHandler getGalleryExportHandler,
     GetEventExportsHandler getEventExportsHandler,
-    RetryFailedGalleryExportHandler retryFailedGalleryExportHandler) : ControllerBase
+    RetryFailedGalleryExportHandler retryFailedGalleryExportHandler,
+    DeleteGalleryExportHandler deleteGalleryExportHandler) : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType(typeof(ApiResult<CreateGalleryExportResponse>), StatusCodes.Status202Accepted)]
@@ -66,6 +68,21 @@ public sealed class GalleryExportsController(
         CancellationToken cancellationToken)
     {
         var result = await retryFailedGalleryExportHandler.HandleAsync(eventId, exportId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpDelete("{exportId:guid}")]
+    [ProducesResponseType(typeof(ApiResult<DeleteGalleryExportResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Delete(
+        Guid eventId,
+        Guid exportId,
+        CancellationToken cancellationToken)
+    {
+        var result = await deleteGalleryExportHandler.HandleAsync(eventId, exportId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
