@@ -163,6 +163,7 @@ app.UseHttpsRedirection();
 app.UseCors(CorsPolicies.Pwa);
 app.UseRateLimiter();
 app.UseAuthentication();
+app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseAuthorization();
 app.MapHealthChecks("/health/application", new HealthCheckOptions
 {
