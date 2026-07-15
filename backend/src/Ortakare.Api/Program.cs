@@ -6,9 +6,11 @@ using FluentValidation.AspNetCore;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Ortakare.Api.Common;
@@ -18,6 +20,7 @@ using Ortakare.Api.Features.Photos.UploadPhoto;
 using Ortakare.Api.Infrastructure.Authentication;
 using Ortakare.Api.Infrastructure.BackgroundJobs;
 using Ortakare.Api.Infrastructure.Cors;
+using Ortakare.Api.Infrastructure.HealthChecks;
 using Ortakare.Api.Infrastructure.ObjectStorage;
 using Ortakare.Api.Infrastructure.Persistence;
 using Ortakare.Api.Infrastructure.RateLimiting;
@@ -114,6 +117,10 @@ builder.Services.AddScoped<IObjectStorageService, R2ObjectStorageService>();
 var connectionString = builder.Configuration.GetConnectionString("PostgreSql") ?? throw new InvalidOperationException("ConnectionStrings:PostgreSql is required.");
 builder.Services.AddDbContext<OrtakareDbContext>(options => options.UseNpgsql(connectionString));
 
+builder.Services.AddHealthChecks()
+    .AddCheck<PostgreSqlHealthCheck>("postgresql", tags: ["ready"])
+    .AddCheck<R2HealthCheck>("r2", tags: ["ready"]);
+
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);
 if (hangfireEnabled)
 {
@@ -157,6 +164,16 @@ app.UseCors(CorsPolicies.Pwa);
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false,
+    ResponseWriter = HealthCheckResponseWriter.WriteAsync
+});
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("ready"),
+    ResponseWriter = HealthCheckResponseWriter.WriteAsync
+});
 app.MapControllers();
 app.Run();
 
