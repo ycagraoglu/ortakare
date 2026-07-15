@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
+using Ortakare.Api.Features.Participants.BlockEventParticipant;
 using Ortakare.Api.Features.Participants.DeleteEventParticipant;
 using Ortakare.Api.Features.Participants.GetEventParticipants;
 
@@ -11,7 +12,8 @@ namespace Ortakare.Api.Features.Participants;
 [Route("api/events/{eventId:guid}/participants")]
 public sealed class EventParticipantsController(
     GetEventParticipantsHandler getEventParticipantsHandler,
-    DeleteEventParticipantHandler deleteEventParticipantHandler) : ControllerBase
+    DeleteEventParticipantHandler deleteEventParticipantHandler,
+    BlockEventParticipantHandler blockEventParticipantHandler) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(ApiResult<GetEventParticipantsResponse>), StatusCodes.Status200OK)]
@@ -26,6 +28,23 @@ public sealed class EventParticipantsController(
         var result = await getEventParticipantsHandler.HandleAsync(
             eventId,
             request,
+            cancellationToken);
+
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{participantId:guid}/block")]
+    [ProducesResponseType(typeof(ApiResult<BlockEventParticipantResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Block(
+        Guid eventId,
+        Guid participantId,
+        CancellationToken cancellationToken)
+    {
+        var result = await blockEventParticipantHandler.HandleAsync(
+            eventId,
+            participantId,
             cancellationToken);
 
         return StatusCode(result.StatusCode, result);
