@@ -17,6 +17,7 @@ using Ortakare.Api.Features.GalleryExports;
 using Ortakare.Api.Features.Photos.UploadPhoto;
 using Ortakare.Api.Infrastructure.Authentication;
 using Ortakare.Api.Infrastructure.BackgroundJobs;
+using Ortakare.Api.Infrastructure.Cors;
 using Ortakare.Api.Infrastructure.ObjectStorage;
 using Ortakare.Api.Infrastructure.Persistence;
 using Ortakare.Api.Infrastructure.RateLimiting;
@@ -39,6 +40,25 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddFeatureHandlers();
+
+builder.Services.AddOptions<CorsOptions>()
+    .BindConfiguration(CorsOptions.SectionName)
+    .Validate(x => x.AllowedOrigins.Length > 0, "Cors:AllowedOrigins must contain at least one origin.")
+    .Validate(x => x.AllowedOrigins.All(IsValidCorsOrigin), "Cors:AllowedOrigins must contain valid absolute HTTP or HTTPS origins without paths.")
+    .ValidateOnStart();
+
+var corsOptions = builder.Configuration.GetRequiredSection(CorsOptions.SectionName).Get<CorsOptions>()
+    ?? throw new InvalidOperationException("Cors configuration is required.");
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(CorsPolicies.Pwa, policy =>
+    {
+        policy.WithOrigins(corsOptions.AllowedOrigins)
+            .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .WithHeaders("Authorization", "Content-Type", "X-Participant-Token", "X-Client-Upload-Id");
+    });
+});
 
 builder.Services.AddOptions<RateLimitingOptions>()
     .BindConfiguration(RateLimitingOptions.SectionName)
@@ -126,6 +146,7 @@ var app = builder.Build();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.UseHttpsRedirection();
+app.UseCors(CorsPolicies.Pwa);
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -148,6 +169,13 @@ static void AddFixedWindowPolicy(RateLimiterOptions options, string policyName, 
             AutoReplenishment = true
         });
     });
+}
+
+static bool IsValidCorsOrigin(string origin)
+{
+    if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
+    if (uri.Scheme is not ("http" or "https")) return false;
+    return uri.AbsolutePath == "/" && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment);
 }
 
 public partial class Program;
