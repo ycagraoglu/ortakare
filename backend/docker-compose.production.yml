@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
     image: ortakare-api:production
     restart: unless-stopped
+    stop_grace_period: 100s
     env_file:
       - .env
     ports:
