@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
+using Ortakare.Api.Features.GalleryExports.CancelPendingGalleryExport;
 using Ortakare.Api.Features.GalleryExports.CreateGalleryExport;
 using Ortakare.Api.Features.GalleryExports.DeleteGalleryExport;
 using Ortakare.Api.Features.GalleryExports.GetEventExports;
@@ -17,7 +18,8 @@ public sealed class GalleryExportsController(
     GetGalleryExportHandler getGalleryExportHandler,
     GetEventExportsHandler getEventExportsHandler,
     RetryFailedGalleryExportHandler retryFailedGalleryExportHandler,
-    DeleteGalleryExportHandler deleteGalleryExportHandler) : ControllerBase
+    DeleteGalleryExportHandler deleteGalleryExportHandler,
+    CancelPendingGalleryExportHandler cancelPendingGalleryExportHandler) : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType(typeof(ApiResult<CreateGalleryExportResponse>), StatusCodes.Status202Accepted)]
@@ -68,6 +70,20 @@ public sealed class GalleryExportsController(
         CancellationToken cancellationToken)
     {
         var result = await retryFailedGalleryExportHandler.HandleAsync(eventId, exportId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{exportId:guid}/cancel")]
+    [ProducesResponseType(typeof(ApiResult<CancelPendingGalleryExportResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Cancel(
+        Guid eventId,
+        Guid exportId,
+        CancellationToken cancellationToken)
+    {
+        var result = await cancelPendingGalleryExportHandler.HandleAsync(eventId, exportId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 
