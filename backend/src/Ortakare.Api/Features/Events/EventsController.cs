@@ -5,6 +5,7 @@ using Ortakare.Api.Features.Events.CloseEvent;
 using Ortakare.Api.Features.Events.CreateEvent;
 using Ortakare.Api.Features.Events.DeleteEvent;
 using Ortakare.Api.Features.Events.GetEvent;
+using Ortakare.Api.Features.Events.GetEventSummary;
 using Ortakare.Api.Features.Events.GetMyEvents;
 using Ortakare.Api.Features.Events.RegenerateGalleryToken;
 using Ortakare.Api.Features.Events.ReopenEvent;
@@ -19,6 +20,7 @@ public sealed class EventsController(
     CreateEventHandler createEventHandler,
     GetMyEventsHandler getMyEventsHandler,
     GetEventHandler getEventHandler,
+    GetEventSummaryHandler getEventSummaryHandler,
     UpdateEventHandler updateEventHandler,
     CloseEventHandler closeEventHandler,
     ReopenEventHandler reopenEventHandler,
@@ -52,6 +54,16 @@ public sealed class EventsController(
     public async Task<IActionResult> GetEvent(Guid eventId, CancellationToken cancellationToken)
     {
         var result = await getEventHandler.HandleAsync(eventId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("{eventId:guid}/summary")]
+    [ProducesResponseType(typeof(ApiResult<GetEventSummaryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetSummary(Guid eventId, CancellationToken cancellationToken)
+    {
+        var result = await getEventSummaryHandler.HandleAsync(eventId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 
