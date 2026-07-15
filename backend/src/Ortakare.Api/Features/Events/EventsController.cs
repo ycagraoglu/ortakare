@@ -5,6 +5,7 @@ using Ortakare.Api.Features.Events.CloseEvent;
 using Ortakare.Api.Features.Events.CreateEvent;
 using Ortakare.Api.Features.Events.GetEvent;
 using Ortakare.Api.Features.Events.GetMyEvents;
+using Ortakare.Api.Features.Events.RegenerateGalleryToken;
 using Ortakare.Api.Features.Events.ReopenEvent;
 using Ortakare.Api.Features.Events.UpdateEvent;
 
@@ -19,7 +20,8 @@ public sealed class EventsController(
     GetEventHandler getEventHandler,
     UpdateEventHandler updateEventHandler,
     CloseEventHandler closeEventHandler,
-    ReopenEventHandler reopenEventHandler) : ControllerBase
+    ReopenEventHandler reopenEventHandler,
+    RegenerateGalleryTokenHandler regenerateGalleryTokenHandler) : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType(typeof(ApiResult<CreateEventResponse>), StatusCodes.Status201Created)]
@@ -79,6 +81,16 @@ public sealed class EventsController(
     public async Task<IActionResult> Reopen(Guid eventId, CancellationToken cancellationToken)
     {
         var result = await reopenEventHandler.HandleAsync(eventId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{eventId:guid}/regenerate-gallery-token")]
+    [ProducesResponseType(typeof(ApiResult<RegenerateGalleryTokenResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RegenerateGalleryToken(Guid eventId, CancellationToken cancellationToken)
+    {
+        var result = await regenerateGalleryTokenHandler.HandleAsync(eventId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
