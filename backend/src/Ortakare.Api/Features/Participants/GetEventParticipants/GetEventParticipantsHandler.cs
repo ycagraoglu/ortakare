@@ -41,6 +41,8 @@ public sealed class GetEventParticipantsHandler(
                 participant.Id,
                 participant.DisplayName,
                 dbContext.EventGuestPhotos.Count(photo => photo.ParticipantId == participant.Id),
+                participant.IsBlocked,
+                participant.BlockedAtUtc,
                 participant.CreatedAtUtc))
             .ToListAsync(cancellationToken);
 
