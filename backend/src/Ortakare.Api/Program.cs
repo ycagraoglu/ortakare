@@ -122,6 +122,15 @@ builder.Services.AddHealthChecks()
     .AddCheck<R2HealthCheck>("r2", tags: ["ready"]);
 
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);
+var hangfireDashboardOptions = builder.Configuration.GetSection(HangfireDashboardOptions.SectionName).Get<HangfireDashboardOptions>() ?? new HangfireDashboardOptions();
+
+builder.Services.AddOptions<HangfireDashboardOptions>()
+    .BindConfiguration(HangfireDashboardOptions.SectionName)
+    .Validate(x => !x.Enabled || IsValidDashboardPath(x.Path), "Hangfire:Dashboard:Path must be a local absolute path.")
+    .Validate(x => !x.Enabled || x.Username.Length >= 8, "Hangfire:Dashboard:Username must contain at least 8 characters when dashboard is enabled.")
+    .Validate(x => !x.Enabled || x.Password.Length >= 24, "Hangfire:Dashboard:Password must contain at least 24 characters when dashboard is enabled.")
+    .ValidateOnStart();
+
 if (hangfireEnabled)
 {
     builder.Services.AddHangfire(configuration => configuration.UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
@@ -165,6 +174,17 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseMiddleware<RequestLoggingMiddleware>();
 app.UseAuthorization();
+
+if (hangfireEnabled && hangfireDashboardOptions.Enabled)
+{
+    app.UseHangfireDashboard(hangfireDashboardOptions.Path, new DashboardOptions
+    {
+        Authorization = [new HangfireDashboardAuthorizationFilter(hangfireDashboardOptions)],
+        DashboardTitle = "Ortakare Operations Jobs",
+        IgnoreAntiforgeryToken = false
+    });
+}
+
 app.MapHealthChecks("/health/application", new HealthCheckOptions
 {
     Predicate = _ => false,
@@ -201,6 +221,14 @@ static bool IsValidCorsOrigin(string origin)
     if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)) return false;
     if (uri.Scheme is not ("http" or "https")) return false;
     return uri.AbsolutePath == "/" && string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment);
+}
+
+static bool IsValidDashboardPath(string path)
+{
+    return path.StartsWith('/', StringComparison.Ordinal)
+        && !path.StartsWith("//", StringComparison.Ordinal)
+        && !path.Contains('?', StringComparison.Ordinal)
+        && !path.Contains('#', StringComparison.Ordinal);
 }
 
 public partial class Program;
