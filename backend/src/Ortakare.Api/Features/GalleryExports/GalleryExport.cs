@@ -10,6 +10,7 @@ public sealed class GalleryExport
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? CompletedAtUtc { get; set; }
     public DateTime? FailedAtUtc { get; set; }
+    public DateTime? CancelledAtUtc { get; set; }
 }
 
 public enum GalleryExportStatus
@@ -17,5 +18,6 @@ public enum GalleryExportStatus
     Pending = 1,
     Processing = 2,
     Completed = 3,
-    Failed = 4
+    Failed = 4,
+    Cancelled = 5
 }
