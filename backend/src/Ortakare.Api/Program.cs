@@ -164,12 +164,12 @@ app.UseCors(CorsPolicies.Pwa);
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapHealthChecks("/health/live", new HealthCheckOptions
+app.MapHealthChecks("/health/application", new HealthCheckOptions
 {
     Predicate = _ => false,
     ResponseWriter = HealthCheckResponseWriter.WriteAsync
 });
-app.MapHealthChecks("/health/ready", new HealthCheckOptions
+app.MapHealthChecks("/health/dependencies", new HealthCheckOptions
 {
     Predicate = registration => registration.Tags.Contains("ready"),
     ResponseWriter = HealthCheckResponseWriter.WriteAsync
