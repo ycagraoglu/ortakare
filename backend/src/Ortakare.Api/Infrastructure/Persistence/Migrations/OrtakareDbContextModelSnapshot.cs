@@ -47,6 +47,7 @@ public partial class OrtakareDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Ortakare.Api.Features.GalleryExports.GalleryExport", entity =>
         {
             entity.Property<Guid>("Id").ValueGeneratedNever().HasColumnType("uuid");
+            entity.Property<DateTime?>("CancelledAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<DateTime?>("CompletedAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<Guid>("EventId").HasColumnType("uuid");
@@ -62,9 +63,11 @@ public partial class OrtakareDbContextModelSnapshot : ModelSnapshot
         modelBuilder.Entity("Ortakare.Api.Features.Participants.EventGuestParticipant", entity =>
         {
             entity.Property<Guid>("Id").ValueGeneratedNever().HasColumnType("uuid");
+            entity.Property<DateTime?>("BlockedAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<string>("DisplayName").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)");
             entity.Property<Guid>("EventId").HasColumnType("uuid");
+            entity.Property<bool>("IsBlocked").HasColumnType("boolean");
             entity.Property<string>("TokenHash").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
             entity.HasKey("Id");
             entity.HasIndex("EventId", "CreatedAtUtc");
