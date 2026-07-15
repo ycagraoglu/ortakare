@@ -14,9 +14,9 @@ public sealed class GetOwnerStorageQuotaHandler(
         CancellationToken cancellationToken)
     {
         var quotaOptions = configuration
-            .GetRequiredSection(OwnerStorageQuotaOptions.SectionName)
+            .GetSection(OwnerStorageQuotaOptions.SectionName)
             .Get<OwnerStorageQuotaOptions>()
-            ?? throw new InvalidOperationException("OwnerStorageQuota configuration is required.");
+            ?? new OwnerStorageQuotaOptions();
 
         ValidateOptions(quotaOptions);
 
