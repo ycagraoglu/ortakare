@@ -11,4 +11,6 @@ public sealed record GetEventParticipantsItem(
     Guid Id,
     string DisplayName,
     int PhotoCount,
+    bool IsBlocked,
+    DateTime? BlockedAtUtc,
     DateTime CreatedAtUtc);
