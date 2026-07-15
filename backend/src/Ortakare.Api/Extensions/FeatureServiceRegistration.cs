@@ -7,6 +7,7 @@ using Ortakare.Api.Features.Events.CloseEvent;
 using Ortakare.Api.Features.Events.CreateEvent;
 using Ortakare.Api.Features.Events.DeleteEvent;
 using Ortakare.Api.Features.Events.GetEvent;
+using Ortakare.Api.Features.Events.GetEventSummary;
 using Ortakare.Api.Features.Events.GetMyEvents;
 using Ortakare.Api.Features.Events.RegenerateGalleryToken;
 using Ortakare.Api.Features.Events.ReopenEvent;
@@ -48,6 +49,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<CreateEventHandler>();
         services.AddScoped<GetMyEventsHandler>();
         services.AddScoped<GetEventHandler>();
+        services.AddScoped<GetEventSummaryHandler>();
         services.AddScoped<UpdateEventHandler>();
         services.AddScoped<CloseEventHandler>();
         services.AddScoped<ReopenEventHandler>();
