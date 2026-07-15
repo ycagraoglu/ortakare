@@ -4,6 +4,7 @@ using Ortakare.Api.Features.Auth.Logout;
 using Ortakare.Api.Features.Auth.Refresh;
 using Ortakare.Api.Features.Auth.Register;
 using Ortakare.Api.Features.Dashboard.GetOwnerDashboardSummary;
+using Ortakare.Api.Features.Dashboard.GetOwnerRecentActivity;
 using Ortakare.Api.Features.Events.CloseEvent;
 using Ortakare.Api.Features.Events.CreateEvent;
 using Ortakare.Api.Features.Events.DeleteEvent;
@@ -49,6 +50,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<RefreshHandler>();
         services.AddScoped<LogoutHandler>();
         services.AddScoped<GetOwnerDashboardSummaryHandler>();
+        services.AddScoped<GetOwnerRecentActivityHandler>();
         services.AddScoped<CreateEventHandler>();
         services.AddScoped<GetMyEventsHandler>();
         services.AddScoped<GetEventHandler>();
