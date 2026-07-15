@@ -46,6 +46,7 @@ public sealed class UploadPhotoHandler(
             {
                 ParticipantId = participant.Id,
                 EventId = eventEntity.Id,
+                participant.IsBlocked,
                 eventEntity.UploadsEnabled
             })
             .SingleOrDefaultAsync(cancellationToken);
@@ -55,6 +56,13 @@ public sealed class UploadPhotoHandler(
             return ApiResult<UploadPhotoResponse>.Failure(
                 "Katılımcı doğrulanamadı.",
                 StatusCodes.Status401Unauthorized);
+        }
+
+        if (participantInfo.IsBlocked)
+        {
+            return ApiResult<UploadPhotoResponse>.Failure(
+                "Bu katılımcının yükleme erişimi engellendi.",
+                StatusCodes.Status403Forbidden);
         }
 
         if (!participantInfo.UploadsEnabled)
