@@ -23,6 +23,7 @@ using Ortakare.Api.Infrastructure.Cors;
 using Ortakare.Api.Infrastructure.HealthChecks;
 using Ortakare.Api.Infrastructure.ObjectStorage;
 using Ortakare.Api.Infrastructure.Persistence;
+using Ortakare.Api.Infrastructure.Proxy;
 using Ortakare.Api.Infrastructure.RateLimiting;
 using Ortakare.Api.Middleware;
 
@@ -43,6 +44,7 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddFeatureHandlers();
+builder.Services.AddTrustedForwardedHeaders(builder.Configuration);
 builder.Services.AddHsts(options =>
 {
     options.MaxAge = TimeSpan.FromDays(365);
@@ -164,6 +166,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 
 builder.Services.AddAuthorization();
 var app = builder.Build();
+app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 if (!app.Environment.IsDevelopment()) app.UseHsts();
