@@ -24,24 +24,15 @@ using Ortakare.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services
-    .AddControllers()
-    .ConfigureApiBehaviorOptions(options =>
+builder.Services.AddControllers().ConfigureApiBehaviorOptions(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
     {
-        options.InvalidModelStateResponseFactory = context =>
-        {
-            var message = string.Join(" ", context.ModelState.Values
-                .SelectMany(x => x.Errors)
-                .Select(x => x.ErrorMessage)
-                .Where(x => !string.IsNullOrWhiteSpace(x)));
-
-            var result = ApiResult.Failure(
-                string.IsNullOrWhiteSpace(message) ? "Gönderilen bilgiler geçersiz." : message,
-                StatusCodes.Status400BadRequest);
-
-            return new BadRequestObjectResult(result);
-        };
-    });
+        var message = string.Join(" ", context.ModelState.Values.SelectMany(x => x.Errors).Select(x => x.ErrorMessage).Where(x => !string.IsNullOrWhiteSpace(x)));
+        var result = ApiResult.Failure(string.IsNullOrWhiteSpace(message) ? "Gönderilen bilgiler geçersiz." : message, StatusCodes.Status400BadRequest);
+        return new BadRequestObjectResult(result);
+    };
+});
 
 builder.Services.AddOpenApi();
 builder.Services.AddFluentValidationAutoValidation();
@@ -49,8 +40,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddFeatureHandlers();
 
-builder.Services
-    .AddOptions<RateLimitingOptions>()
+builder.Services.AddOptions<RateLimitingOptions>()
     .BindConfiguration(RateLimitingOptions.SectionName)
     .Validate(x => x.AuthPermitLimit > 0, "RateLimiting:AuthPermitLimit must be greater than zero.")
     .Validate(x => x.PublicPermitLimit > 0, "RateLimiting:PublicPermitLimit must be greater than zero.")
@@ -59,10 +49,7 @@ builder.Services
     .Validate(x => x.WindowSeconds is > 0 and <= 3600, "RateLimiting:WindowSeconds must be between 1 and 3600.")
     .ValidateOnStart();
 
-var rateLimitingOptions = builder.Configuration
-    .GetRequiredSection(RateLimitingOptions.SectionName)
-    .Get<RateLimitingOptions>()
-    ?? throw new InvalidOperationException("RateLimiting configuration is required.");
+var rateLimitingOptions = builder.Configuration.GetSection(RateLimitingOptions.SectionName).Get<RateLimitingOptions>() ?? new RateLimitingOptions();
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -70,9 +57,7 @@ builder.Services.AddRateLimiter(options =>
     options.OnRejected = async (context, cancellationToken) =>
     {
         context.HttpContext.Response.ContentType = "application/json";
-        await context.HttpContext.Response.WriteAsJsonAsync(
-            ApiResult.Failure("Çok fazla istek gönderildi. Lütfen kısa bir süre sonra tekrar deneyin.", StatusCodes.Status429TooManyRequests),
-            cancellationToken);
+        await context.HttpContext.Response.WriteAsJsonAsync(ApiResult.Failure("Çok fazla istek gönderildi. Lütfen kısa bir süre sonra tekrar deneyin.", StatusCodes.Status429TooManyRequests), cancellationToken);
     };
 
     AddFixedWindowPolicy(options, RateLimitingPolicies.Auth, rateLimitingOptions.AuthPermitLimit, rateLimitingOptions.WindowSeconds);
@@ -81,65 +66,38 @@ builder.Services.AddRateLimiter(options =>
     AddFixedWindowPolicy(options, RateLimitingPolicies.Owner, rateLimitingOptions.OwnerPermitLimit, rateLimitingOptions.WindowSeconds);
 });
 
-builder.Services
-    .AddOptions<PhotoUploadOptions>()
+builder.Services.AddOptions<PhotoUploadOptions>()
     .BindConfiguration(PhotoUploadOptions.SectionName)
-    .Validate(x => x.MaxFileSizeBytes is > 0 and <= 100 * 1024 * 1024,
-        "PhotoUpload:MaxFileSizeBytes must be between 1 byte and 100 MB.")
+    .Validate(x => x.MaxFileSizeBytes is > 0 and <= 100 * 1024 * 1024, "PhotoUpload:MaxFileSizeBytes must be between 1 byte and 100 MB.")
     .ValidateOnStart();
 
 builder.Services.Configure<FormOptions>(options =>
 {
-    var configuredLimit = builder.Configuration
-        .GetSection(PhotoUploadOptions.SectionName)
-        .GetValue<long?>(nameof(PhotoUploadOptions.MaxFileSizeBytes))
-        ?? 25 * 1024 * 1024;
-
+    var configuredLimit = builder.Configuration.GetSection(PhotoUploadOptions.SectionName).GetValue<long?>(nameof(PhotoUploadOptions.MaxFileSizeBytes)) ?? 25 * 1024 * 1024;
     options.MultipartBodyLengthLimit = configuredLimit + 1024 * 1024;
 });
 
-builder.Services
-    .AddOptions<ObjectStorageOptions>()
-    .BindConfiguration(ObjectStorageOptions.SectionName);
-
+builder.Services.AddOptions<ObjectStorageOptions>().BindConfiguration(ObjectStorageOptions.SectionName);
 builder.Services.AddSingleton<IAmazonS3>(serviceProvider =>
 {
     var options = serviceProvider.GetRequiredService<IOptions<ObjectStorageOptions>>().Value;
-    var config = new AmazonS3Config
-    {
-        ServiceURL = options.ServiceUrl,
-        ForcePathStyle = true,
-        AuthenticationRegion = "auto"
-    };
-
+    var config = new AmazonS3Config { ServiceURL = options.ServiceUrl, ForcePathStyle = true, AuthenticationRegion = "auto" };
     return new AmazonS3Client(options.AccessKey, options.SecretKey, config);
 });
-
 builder.Services.AddScoped<IObjectStorageService, R2ObjectStorageService>();
 
-var connectionString = builder.Configuration.GetConnectionString("PostgreSql")
-    ?? throw new InvalidOperationException("ConnectionStrings:PostgreSql is required.");
-
-builder.Services.AddDbContext<OrtakareDbContext>(options =>
-    options.UseNpgsql(connectionString));
+var connectionString = builder.Configuration.GetConnectionString("PostgreSql") ?? throw new InvalidOperationException("ConnectionStrings:PostgreSql is required.");
+builder.Services.AddDbContext<OrtakareDbContext>(options => options.UseNpgsql(connectionString));
 
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);
 if (hangfireEnabled)
 {
-    builder.Services.AddHangfire(configuration =>
-        configuration.UsePostgreSqlStorage(options =>
-            options.UseNpgsqlConnection(connectionString)));
-
-    builder.Services.AddHangfireServer(options =>
-    {
-        options.WorkerCount = builder.Configuration.GetValue("Hangfire:WorkerCount", 2);
-    });
-
+    builder.Services.AddHangfire(configuration => configuration.UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
+    builder.Services.AddHangfireServer(options => options.WorkerCount = builder.Configuration.GetValue("Hangfire:WorkerCount", 2));
     builder.Services.AddScoped<IGalleryExportJobScheduler, HangfireGalleryExportJobScheduler>();
 }
 
-builder.Services
-    .AddOptions<JwtOptions>()
+builder.Services.AddOptions<JwtOptions>()
     .BindConfiguration(JwtOptions.SectionName)
     .Validate(x => !string.IsNullOrWhiteSpace(x.Issuer), "Jwt:Issuer is required.")
     .Validate(x => !string.IsNullOrWhiteSpace(x.Audience), "Jwt:Audience is required.")
@@ -147,52 +105,34 @@ builder.Services
     .Validate(x => x.AccessTokenMinutes is > 0 and <= 1440, "Jwt:AccessTokenMinutes must be between 1 and 1440.")
     .ValidateOnStart();
 
-var jwtOptions = builder.Configuration
-    .GetRequiredSection(JwtOptions.SectionName)
-    .Get<JwtOptions>()
-    ?? throw new InvalidOperationException("Jwt configuration is required.");
-
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+var jwtOptions = builder.Configuration.GetRequiredSection(JwtOptions.SectionName).Get<JwtOptions>() ?? throw new InvalidOperationException("Jwt configuration is required.");
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = jwtOptions.Issuer,
-            ValidateAudience = true,
-            ValidAudience = jwtOptions.Audience,
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromSeconds(30)
-        };
-    });
+        ValidateIssuer = true,
+        ValidIssuer = jwtOptions.Issuer,
+        ValidateAudience = true,
+        ValidAudience = jwtOptions.Audience,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromSeconds(30)
+    };
+});
 
 builder.Services.AddAuthorization();
-
 var app = builder.Build();
-
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
+if (app.Environment.IsDevelopment()) app.MapOpenApi();
 app.UseHttpsRedirection();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
 app.Run();
 
-static void AddFixedWindowPolicy(
-    RateLimiterOptions options,
-    string policyName,
-    int permitLimit,
-    int windowSeconds)
+static void AddFixedWindowPolicy(RateLimiterOptions options, string policyName, int permitLimit, int windowSeconds)
 {
     options.AddPolicy(policyName, httpContext =>
     {
@@ -200,15 +140,13 @@ static void AddFixedWindowPolicy(
             ? $"user:{httpContext.User.FindFirst("sub")?.Value ?? "unknown"}"
             : $"ip:{httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
 
-        return RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey,
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = permitLimit,
-                Window = TimeSpan.FromSeconds(windowSeconds),
-                QueueLimit = 0,
-                AutoReplenishment = true
-            });
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = TimeSpan.FromSeconds(windowSeconds),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
     });
 }
 
