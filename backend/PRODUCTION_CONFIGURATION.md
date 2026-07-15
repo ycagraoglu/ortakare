@@ -27,7 +27,7 @@ Aşağıdaki değerler deployment ortamında secret olarak verilmelidir:
 cp .env.example .env
 ```
 
-`.env` içindeki `CHANGE_ME` değerleri güçlü ve benzersiz secret değerlerle değiştirilmelidir.
+`.env` içindeki `CHANGE_ME` değerleri güçlü ve benzersiz secret değerlerle değiştirilmelidir. Compose ile PostgreSQL çalıştırılırken `POSTGRES_PASSWORD` ile `ConnectionStrings__PostgreSql` içindeki `Password` aynı değer olmalıdır.
 
 ```bash
 docker compose --env-file .env -f docker-compose.production.yml up -d --build
