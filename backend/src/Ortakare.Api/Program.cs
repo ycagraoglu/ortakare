@@ -125,6 +125,7 @@ builder.Services.AddHealthChecks()
 
 var hangfireEnabled = builder.Configuration.GetValue("Hangfire:Enabled", true);
 var hangfireDashboardOptions = builder.Configuration.GetSection(HangfireDashboardOptions.SectionName).Get<HangfireDashboardOptions>() ?? new HangfireDashboardOptions();
+var backgroundJobShutdownOptions = builder.Configuration.GetSection(BackgroundJobShutdownOptions.SectionName).Get<BackgroundJobShutdownOptions>() ?? new BackgroundJobShutdownOptions();
 
 builder.Services.AddOptions<HangfireDashboardOptions>()
     .BindConfiguration(HangfireDashboardOptions.SectionName)
@@ -133,10 +134,28 @@ builder.Services.AddOptions<HangfireDashboardOptions>()
     .Validate(x => !x.Enabled || x.Password.Length >= 24, "Hangfire:Dashboard:Password must contain at least 24 characters when dashboard is enabled.")
     .ValidateOnStart();
 
+builder.Services.AddOptions<BackgroundJobShutdownOptions>()
+    .BindConfiguration(BackgroundJobShutdownOptions.SectionName)
+    .Validate(x => x.HostShutdownSeconds is > 0 and <= 600, "Hangfire:Shutdown:HostShutdownSeconds must be between 1 and 600.")
+    .Validate(x => x.StopSeconds is > 0 and <= 600, "Hangfire:Shutdown:StopSeconds must be between 1 and 600.")
+    .Validate(x => x.ShutdownSeconds is > 0 and <= 600, "Hangfire:Shutdown:ShutdownSeconds must be between 1 and 600.")
+    .Validate(x => x.CancellationCheckSeconds is > 0 and <= 30, "Hangfire:Shutdown:CancellationCheckSeconds must be between 1 and 30.")
+    .Validate(x => x.HostShutdownSeconds >= x.ShutdownSeconds, "Host shutdown timeout must be greater than or equal to Hangfire shutdown timeout.")
+    .ValidateOnStart();
+
+builder.Services.Configure<HostOptions>(options =>
+    options.ShutdownTimeout = TimeSpan.FromSeconds(backgroundJobShutdownOptions.HostShutdownSeconds));
+
 if (hangfireEnabled)
 {
     builder.Services.AddHangfire(configuration => configuration.UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)));
-    builder.Services.AddHangfireServer(options => options.WorkerCount = builder.Configuration.GetValue("Hangfire:WorkerCount", 2));
+    builder.Services.AddHangfireServer(options =>
+    {
+        options.WorkerCount = builder.Configuration.GetValue("Hangfire:WorkerCount", 2);
+        options.StopTimeout = TimeSpan.FromSeconds(backgroundJobShutdownOptions.StopSeconds);
+        options.ShutdownTimeout = TimeSpan.FromSeconds(backgroundJobShutdownOptions.ShutdownSeconds);
+        options.CancellationCheckInterval = TimeSpan.FromSeconds(backgroundJobShutdownOptions.CancellationCheckSeconds);
+    });
     builder.Services.AddScoped<IGalleryExportJobScheduler, HangfireGalleryExportJobScheduler>();
 }
 
