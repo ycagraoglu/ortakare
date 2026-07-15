@@ -8,6 +8,7 @@ using Ortakare.Api.Features.Events.GetEvent;
 using Ortakare.Api.Features.Events.GetMyEvents;
 using Ortakare.Api.Features.Events.UpdateEvent;
 using Ortakare.Api.Features.GalleryExports.CreateGalleryExport;
+using Ortakare.Api.Features.GalleryExports.GetEventExports;
 using Ortakare.Api.Features.GalleryExports.GetGalleryExport;
 using Ortakare.Api.Features.Participants;
 using Ortakare.Api.Features.Participants.GetEventParticipants;
@@ -48,6 +49,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<DeleteGuestPhotoHandler>();
         services.AddScoped<CreateGalleryExportHandler>();
         services.AddScoped<GetGalleryExportHandler>();
+        services.AddScoped<GetEventExportsHandler>();
         services.AddScoped<BuildGalleryExportJob>();
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
