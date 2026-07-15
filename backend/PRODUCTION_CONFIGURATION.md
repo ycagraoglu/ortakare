@@ -41,7 +41,7 @@ PostgreSQL için host port publish edilmez. Veritabanı yalnızca `ortakare` Doc
 
 ## Health check
 
-Container liveness kontrolü:
+Uygulamanın ayakta olduğunu kontrol etmek için:
 
 ```text
 /health/application
@@ -53,7 +53,7 @@ PostgreSQL ve R2 dependency kontrolü:
 /health/dependencies
 ```
 
-Reverse proxy veya deployment sistemi trafik yönlendirmeden önce dependency health endpoint'ini ayrıca kontrol edebilir.
+Container image içine sırf healthcheck için `curl` veya `wget` eklenmedi. Runtime image minimal tutulur; container health probe deployment platformu veya reverse proxy tarafından `/health/application` üzerinden yapılmalıdır.
 
 ## Production kontrol listesi
 
