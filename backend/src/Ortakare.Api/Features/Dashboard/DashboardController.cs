@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.Dashboard.GetOwnerDashboardSummary;
 using Ortakare.Api.Features.Dashboard.GetOwnerRecentActivity;
+using Ortakare.Api.Features.Dashboard.GetOwnerStorageBreakdown;
 
 namespace Ortakare.Api.Features.Dashboard;
 
@@ -11,7 +12,8 @@ namespace Ortakare.Api.Features.Dashboard;
 [Route("api/dashboard")]
 public sealed class DashboardController(
     GetOwnerDashboardSummaryHandler getOwnerDashboardSummaryHandler,
-    GetOwnerRecentActivityHandler getOwnerRecentActivityHandler) : ControllerBase
+    GetOwnerRecentActivityHandler getOwnerRecentActivityHandler,
+    GetOwnerStorageBreakdownHandler getOwnerStorageBreakdownHandler) : ControllerBase
 {
     [HttpGet("summary")]
     [ProducesResponseType(typeof(ApiResult<GetOwnerDashboardSummaryResponse>), StatusCodes.Status200OK)]
@@ -31,6 +33,18 @@ public sealed class DashboardController(
         CancellationToken cancellationToken)
     {
         var result = await getOwnerRecentActivityHandler.HandleAsync(request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("storage")]
+    [ProducesResponseType(typeof(ApiResult<GetOwnerStorageBreakdownResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetStorageBreakdown(
+        [FromQuery] GetOwnerStorageBreakdownRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await getOwnerStorageBreakdownHandler.HandleAsync(request, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
