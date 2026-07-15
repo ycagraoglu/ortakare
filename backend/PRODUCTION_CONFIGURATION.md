@@ -39,28 +39,6 @@ Compose yapılandırmasında API host üzerinde yalnızca `127.0.0.1:8080` adres
 
 PostgreSQL için host port publish edilmez. Veritabanı yalnızca `ortakare` Docker network'ü içinde erişilebilir durumdadır.
 
-## Reverse proxy ve forwarded headers
-
-API, `X-Forwarded-For` ve `X-Forwarded-Proto` değerlerini yalnızca açıkça güvenilen proxy veya network üzerinden kabul eder. Forwarded headers middleware rate limiting, HTTPS redirect ve request logging'den önce çalışır.
-
-Production ortamında gerçek reverse proxy adresi tanımlanmalıdır:
-
-```text
-ForwardedHeaders__Enabled=true
-ForwardedHeaders__KnownProxies__0=127.0.0.1
-ForwardedHeaders__ForwardLimit=1
-```
-
-Proxy Docker network içinden bağlanıyorsa tek IP yerine CIDR tanımlanabilir:
-
-```text
-ForwardedHeaders__KnownNetworks__0=172.20.0.0/16
-```
-
-Örnek IP veya CIDR deployment ortamındaki gerçek proxy adresiyle değiştirilmelidir. `KnownProxies` veya `KnownNetworks` boş bırakılarak tüm internet proxy olarak güvenilir hale getirilmez. Tek reverse proxy kullanılan varsayılan topolojide `ForwardLimit=1` korunmalıdır.
-
-Bu yapı sayesinde anonymous rate limit partition gerçek istemci IP'sini kullanır ve structured request logları proxy IP'si yerine istemci IP bağlamıyla çalışır. Proxy HTTPS terminate ettiğinde `X-Forwarded-Proto=https` doğru işlendiği için uygulama gereksiz HTTPS redirect üretmez.
-
 ## Health check
 
 Uygulamanın ayakta olduğunu kontrol etmek için:
@@ -77,13 +55,32 @@ PostgreSQL ve R2 dependency kontrolü:
 
 Container image içine sırf healthcheck için `curl` veya `wget` eklenmedi. Runtime image minimal tutulur; container health probe deployment platformu veya reverse proxy tarafından `/health/application` üzerinden yapılmalıdır.
 
+## Graceful shutdown ve Hangfire
+
+API container yeniden başlatılırken Hangfire worker'larının çalışan ZIP export job'larını kontrollü biçimde durdurabilmesi için ayrı shutdown süreleri kullanılır.
+
+Varsayılan değerler:
+
+```text
+Hangfire__Shutdown__HostShutdownSeconds=90
+Hangfire__Shutdown__StopSeconds=60
+Hangfire__Shutdown__ShutdownSeconds=75
+Hangfire__Shutdown__CancellationCheckSeconds=2
+```
+
+Docker Compose API servisi için `stop_grace_period: 100s` tanımlıdır. Bu süre host shutdown timeout değerinden uzun tutulur; Docker process'i zorla sonlandırmadan önce ASP.NET Core ve Hangfire'a kapanma fırsatı verir.
+
+ZIP export job'ı `CancellationToken` kullanır. Shutdown sırasında job iptal edilirse geçici ZIP dosyası `finally` bloğunda temizlenir, export `Failed` olarak kaydedilir ve Hangfire'ın kalıcı PostgreSQL storage yapısı sayesinde job kaydı kaybolmaz. Sonraki retry aynı deterministik export storage key'i ile devam eder.
+
+Production platformunda ayrıca container termination grace period değeri en az `100` saniye olmalıdır. Daha kısa platform timeout'u Docker Compose ayarını etkisiz hale getirebilir.
+
 ## Production kontrol listesi
 
 - Gerçek secret değerleri `.env` veya deployment secret store üzerinden verildi.
 - `Cors__AllowedOrigins` yalnızca gerçek PWA origin'lerini içeriyor.
 - Reverse proxy HTTPS terminate ediyor.
-- `ForwardedHeaders__Enabled=true` ve gerçek proxy IP/CIDR değeri tanımlandı.
-- `ForwardedHeaders__ForwardLimit` gerçek proxy hop sayısıyla uyumlu.
+- Forwarded headers yalnızca güvenilen proxy üzerinden kabul ediliyor.
 - `/health/dependencies` public internetten gerekiyorsa proxy seviyesinde sınırlandırıldı.
 - Hangfire Dashboard varsayılan olarak kapalı tutuldu.
 - PostgreSQL public host portuna açılmadı.
+- Container termination grace period en az `100` saniye olarak ayarlandı.
