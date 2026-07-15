@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.Events.CloseEvent;
 using Ortakare.Api.Features.Events.CreateEvent;
+using Ortakare.Api.Features.Events.DeleteEvent;
 using Ortakare.Api.Features.Events.GetEvent;
 using Ortakare.Api.Features.Events.GetMyEvents;
 using Ortakare.Api.Features.Events.RegenerateGalleryToken;
@@ -21,7 +22,8 @@ public sealed class EventsController(
     UpdateEventHandler updateEventHandler,
     CloseEventHandler closeEventHandler,
     ReopenEventHandler reopenEventHandler,
-    RegenerateGalleryTokenHandler regenerateGalleryTokenHandler) : ControllerBase
+    RegenerateGalleryTokenHandler regenerateGalleryTokenHandler,
+    DeleteEventHandler deleteEventHandler) : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType(typeof(ApiResult<CreateEventResponse>), StatusCodes.Status201Created)]
@@ -91,6 +93,18 @@ public sealed class EventsController(
     public async Task<IActionResult> RegenerateGalleryToken(Guid eventId, CancellationToken cancellationToken)
     {
         var result = await regenerateGalleryTokenHandler.HandleAsync(eventId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpDelete("{eventId:guid}")]
+    [ProducesResponseType(typeof(ApiResult<DeleteEventResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Delete(Guid eventId, CancellationToken cancellationToken)
+    {
+        var result = await deleteEventHandler.HandleAsync(eventId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
