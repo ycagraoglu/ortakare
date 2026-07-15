@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Ortakare.Api.Features.Auth.Login;
+using Ortakare.Api.Features.Auth.Logout;
 using Ortakare.Api.Features.Auth.Refresh;
 using Ortakare.Api.Features.Auth.Register;
 using Ortakare.Api.Features.Events.CloseEvent;
@@ -34,6 +35,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<RegisterHandler>();
         services.AddScoped<LoginHandler>();
         services.AddScoped<RefreshHandler>();
+        services.AddScoped<LogoutHandler>();
         services.AddScoped<CreateEventHandler>();
         services.AddScoped<GetMyEventsHandler>();
         services.AddScoped<GetEventHandler>();
