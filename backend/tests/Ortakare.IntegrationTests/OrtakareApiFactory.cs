@@ -21,7 +21,12 @@ public sealed class OrtakareApiFactory : WebApplicationFactory<Program>
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Hangfire:Enabled"] = "false"
+                ["Hangfire:Enabled"] = "false",
+                ["RateLimiting:AuthPermitLimit"] = "10000",
+                ["RateLimiting:PublicPermitLimit"] = "10000",
+                ["RateLimiting:UploadPermitLimit"] = "10000",
+                ["RateLimiting:OwnerPermitLimit"] = "10000",
+                ["RateLimiting:WindowSeconds"] = "60"
             });
         });
 
