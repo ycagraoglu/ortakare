@@ -42,15 +42,13 @@ public sealed class DeleteEventParticipantHandler(
                 StatusCodes.Status404NotFound);
         }
 
-        var photoStorageKeys = await dbContext.EventGuestPhotos
-            .AsNoTracking()
+        var photos = await dbContext.EventGuestPhotos
             .Where(x => x.EventId == eventId && x.ParticipantId == participantId)
-            .Select(x => x.StorageKey)
             .ToListAsync(cancellationToken);
 
         try
         {
-            foreach (var storageKey in photoStorageKeys.Distinct(StringComparer.Ordinal))
+            foreach (var storageKey in photos.Select(x => x.StorageKey).Distinct(StringComparer.Ordinal))
             {
                 await objectStorageService.DeleteAsync(storageKey, cancellationToken);
             }
@@ -68,11 +66,12 @@ public sealed class DeleteEventParticipantHandler(
                 StatusCodes.Status503ServiceUnavailable);
         }
 
+        dbContext.EventGuestPhotos.RemoveRange(photos);
         dbContext.EventGuestParticipants.Remove(participant);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return ApiResult<DeleteEventParticipantResponse>.Success(
-            new DeleteEventParticipantResponse(participantId, photoStorageKeys.Count),
+            new DeleteEventParticipantResponse(participantId, photos.Count),
             "Katılımcı ve fotoğrafları silindi.");
     }
 }
