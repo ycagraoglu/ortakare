@@ -28,13 +28,23 @@ public sealed class BuildGalleryExportJob(
             return;
         }
 
-        if (galleryExport.Status == GalleryExportStatus.Completed)
+        if (galleryExport.Status is GalleryExportStatus.Completed or GalleryExportStatus.Cancelled)
         {
+            return;
+        }
+
+        if (galleryExport.Status != GalleryExportStatus.Pending)
+        {
+            logger.LogWarning(
+                "Gallery export {ExportId} cannot start from status {Status}.",
+                exportId,
+                galleryExport.Status);
             return;
         }
 
         galleryExport.Status = GalleryExportStatus.Processing;
         galleryExport.FailedAtUtc = null;
+        galleryExport.CancelledAtUtc = null;
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var tempFilePath = Path.Combine(
@@ -79,6 +89,7 @@ public sealed class BuildGalleryExportJob(
             galleryExport.PhotoCount = photos.Count;
             galleryExport.CompletedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
             galleryExport.FailedAtUtc = null;
+            galleryExport.CancelledAtUtc = null;
             await dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (Exception exception)
@@ -87,6 +98,7 @@ public sealed class BuildGalleryExportJob(
 
             galleryExport.Status = GalleryExportStatus.Failed;
             galleryExport.CompletedAtUtc = null;
+            galleryExport.CancelledAtUtc = null;
             galleryExport.FailedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
             await dbContext.SaveChangesAsync(CancellationToken.None);
             throw;
