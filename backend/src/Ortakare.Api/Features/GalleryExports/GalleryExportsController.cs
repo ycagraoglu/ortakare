@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.GalleryExports.CreateGalleryExport;
+using Ortakare.Api.Features.GalleryExports.GetEventExports;
 using Ortakare.Api.Features.GalleryExports.GetGalleryExport;
 
 namespace Ortakare.Api.Features.GalleryExports;
@@ -11,7 +12,8 @@ namespace Ortakare.Api.Features.GalleryExports;
 [Route("api/events/{eventId:guid}/exports")]
 public sealed class GalleryExportsController(
     CreateGalleryExportHandler createGalleryExportHandler,
-    GetGalleryExportHandler getGalleryExportHandler) : ControllerBase
+    GetGalleryExportHandler getGalleryExportHandler,
+    GetEventExportsHandler getEventExportsHandler) : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType(typeof(ApiResult<CreateGalleryExportResponse>), StatusCodes.Status202Accepted)]
@@ -21,6 +23,20 @@ public sealed class GalleryExportsController(
     public async Task<IActionResult> Create(Guid eventId, CancellationToken cancellationToken)
     {
         var result = await createGalleryExportHandler.HandleAsync(eventId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(ApiResult<GetEventExportsResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetAll(
+        Guid eventId,
+        [FromQuery] GetEventExportsRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await getEventExportsHandler.HandleAsync(eventId, request, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 
