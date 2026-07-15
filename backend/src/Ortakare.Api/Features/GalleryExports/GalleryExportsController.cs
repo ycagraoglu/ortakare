@@ -4,6 +4,7 @@ using Ortakare.Api.Common;
 using Ortakare.Api.Features.GalleryExports.CreateGalleryExport;
 using Ortakare.Api.Features.GalleryExports.GetEventExports;
 using Ortakare.Api.Features.GalleryExports.GetGalleryExport;
+using Ortakare.Api.Features.GalleryExports.RetryFailedGalleryExport;
 
 namespace Ortakare.Api.Features.GalleryExports;
 
@@ -13,7 +14,8 @@ namespace Ortakare.Api.Features.GalleryExports;
 public sealed class GalleryExportsController(
     CreateGalleryExportHandler createGalleryExportHandler,
     GetGalleryExportHandler getGalleryExportHandler,
-    GetEventExportsHandler getEventExportsHandler) : ControllerBase
+    GetEventExportsHandler getEventExportsHandler,
+    RetryFailedGalleryExportHandler retryFailedGalleryExportHandler) : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType(typeof(ApiResult<CreateGalleryExportResponse>), StatusCodes.Status202Accepted)]
@@ -50,6 +52,20 @@ public sealed class GalleryExportsController(
         CancellationToken cancellationToken)
     {
         var result = await getGalleryExportHandler.HandleAsync(eventId, exportId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{exportId:guid}/retry")]
+    [ProducesResponseType(typeof(ApiResult<RetryFailedGalleryExportResponse>), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Retry(
+        Guid eventId,
+        Guid exportId,
+        CancellationToken cancellationToken)
+    {
+        var result = await retryFailedGalleryExportHandler.HandleAsync(eventId, exportId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
