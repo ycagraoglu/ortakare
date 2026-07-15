@@ -39,6 +39,28 @@ Compose yapılandırmasında API host üzerinde yalnızca `127.0.0.1:8080` adres
 
 PostgreSQL için host port publish edilmez. Veritabanı yalnızca `ortakare` Docker network'ü içinde erişilebilir durumdadır.
 
+## Reverse proxy ve forwarded headers
+
+API, `X-Forwarded-For` ve `X-Forwarded-Proto` değerlerini yalnızca açıkça güvenilen proxy veya network üzerinden kabul eder. Forwarded headers middleware rate limiting, HTTPS redirect ve request logging'den önce çalışır.
+
+Production ortamında gerçek reverse proxy adresi tanımlanmalıdır:
+
+```text
+ForwardedHeaders__Enabled=true
+ForwardedHeaders__KnownProxies__0=127.0.0.1
+ForwardedHeaders__ForwardLimit=1
+```
+
+Proxy Docker network içinden bağlanıyorsa tek IP yerine CIDR tanımlanabilir:
+
+```text
+ForwardedHeaders__KnownNetworks__0=172.20.0.0/16
+```
+
+Örnek IP veya CIDR deployment ortamındaki gerçek proxy adresiyle değiştirilmelidir. `KnownProxies` veya `KnownNetworks` boş bırakılarak tüm internet proxy olarak güvenilir hale getirilmez. Tek reverse proxy kullanılan varsayılan topolojide `ForwardLimit=1` korunmalıdır.
+
+Bu yapı sayesinde anonymous rate limit partition gerçek istemci IP'sini kullanır ve structured request logları proxy IP'si yerine istemci IP bağlamıyla çalışır. Proxy HTTPS terminate ettiğinde `X-Forwarded-Proto=https` doğru işlendiği için uygulama gereksiz HTTPS redirect üretmez.
+
 ## Health check
 
 Uygulamanın ayakta olduğunu kontrol etmek için:
@@ -60,7 +82,8 @@ Container image içine sırf healthcheck için `curl` veya `wget` eklenmedi. Run
 - Gerçek secret değerleri `.env` veya deployment secret store üzerinden verildi.
 - `Cors__AllowedOrigins` yalnızca gerçek PWA origin'lerini içeriyor.
 - Reverse proxy HTTPS terminate ediyor.
-- Forwarded headers yalnızca güvenilen proxy üzerinden kabul ediliyor.
+- `ForwardedHeaders__Enabled=true` ve gerçek proxy IP/CIDR değeri tanımlandı.
+- `ForwardedHeaders__ForwardLimit` gerçek proxy hop sayısıyla uyumlu.
 - `/health/dependencies` public internetten gerekiyorsa proxy seviyesinde sınırlandırıldı.
 - Hangfire Dashboard varsayılan olarak kapalı tutuldu.
 - PostgreSQL public host portuna açılmadı.
