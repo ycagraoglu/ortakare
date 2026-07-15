@@ -6,6 +6,7 @@ using Ortakare.Api.Features.Auth.Register;
 using Ortakare.Api.Features.Dashboard.GetOwnerDashboardSummary;
 using Ortakare.Api.Features.Dashboard.GetOwnerRecentActivity;
 using Ortakare.Api.Features.Dashboard.GetOwnerStorageBreakdown;
+using Ortakare.Api.Features.Dashboard.GetOwnerStorageQuota;
 using Ortakare.Api.Features.Events.CloseEvent;
 using Ortakare.Api.Features.Events.CreateEvent;
 using Ortakare.Api.Features.Events.DeleteEvent;
@@ -53,6 +54,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<GetOwnerDashboardSummaryHandler>();
         services.AddScoped<GetOwnerRecentActivityHandler>();
         services.AddScoped<GetOwnerStorageBreakdownHandler>();
+        services.AddScoped<GetOwnerStorageQuotaHandler>();
         services.AddScoped<CreateEventHandler>();
         services.AddScoped<GetMyEventsHandler>();
         services.AddScoped<GetEventHandler>();
