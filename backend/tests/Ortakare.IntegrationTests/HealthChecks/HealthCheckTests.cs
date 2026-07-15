@@ -13,11 +13,11 @@ public sealed class HealthCheckTests : IClassFixture<OrtakareApiFactory>
     }
 
     [Fact]
-    public async Task Liveness_endpoint_reports_healthy_without_dependency_checks(CancellationToken cancellationToken)
+    public async Task Application_health_endpoint_reports_healthy_without_dependency_checks(CancellationToken cancellationToken)
     {
         using var client = _factory.CreateClient();
 
-        var response = await client.GetAsync("/health/live", cancellationToken);
+        var response = await client.GetAsync("/health/application", cancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
