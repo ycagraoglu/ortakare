@@ -35,6 +35,7 @@ using Ortakare.Api.Features.Photos.DeleteOwnerPhoto;
 using Ortakare.Api.Features.Photos.GetEventPhotos;
 using Ortakare.Api.Features.Photos.UploadPhoto;
 using Ortakare.Api.Features.PublicEvents.GetPublicEvent;
+using Ortakare.Api.Features.Storage.ValidateUpload;
 using Ortakare.Api.Features.System.Health;
 using Ortakare.Api.Features.Users;
 using Ortakare.Api.Infrastructure.Authentication;
@@ -55,6 +56,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<GetOwnerRecentActivityHandler>();
         services.AddScoped<GetOwnerStorageBreakdownHandler>();
         services.AddScoped<GetOwnerStorageQuotaHandler>();
+        services.AddScoped<ValidateUploadHandler>();
         services.AddScoped<CreateEventHandler>();
         services.AddScoped<GetMyEventsHandler>();
         services.AddScoped<GetEventHandler>();
