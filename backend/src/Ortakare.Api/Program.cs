@@ -227,8 +227,8 @@ static bool IsValidDashboardPath(string path)
 {
     return path.StartsWith('/', StringComparison.Ordinal)
         && !path.StartsWith("//", StringComparison.Ordinal)
-        && !path.Contains('?', StringComparison.Ordinal)
-        && !path.Contains('#', StringComparison.Ordinal);
+        && !path.Contains('?')
+        && !path.Contains('#');
 }
 
 public partial class Program;
