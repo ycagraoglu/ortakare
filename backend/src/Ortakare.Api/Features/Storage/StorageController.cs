@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
+using Ortakare.Api.Features.Storage.GetUploadPolicy;
 using Ortakare.Api.Features.Storage.ValidateUpload;
 
 namespace Ortakare.Api.Features.Storage;
@@ -9,8 +10,18 @@ namespace Ortakare.Api.Features.Storage;
 [Authorize]
 [Route("api/storage")]
 public sealed class StorageController(
-    ValidateUploadHandler validateUploadHandler) : ControllerBase
+    ValidateUploadHandler validateUploadHandler,
+    GetUploadPolicyHandler getUploadPolicyHandler) : ControllerBase
 {
+    [HttpGet("upload-policy")]
+    [ProducesResponseType(typeof(ApiResult<GetUploadPolicyResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public IActionResult GetUploadPolicy()
+    {
+        var result = getUploadPolicyHandler.Handle();
+        return StatusCode(result.StatusCode, result);
+    }
+
     [HttpPost("validate-upload")]
     [ProducesResponseType(typeof(ApiResult<ValidateUploadResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status400BadRequest)]
