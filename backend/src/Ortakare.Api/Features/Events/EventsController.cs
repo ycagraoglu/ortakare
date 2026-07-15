@@ -5,6 +5,7 @@ using Ortakare.Api.Features.Events.CloseEvent;
 using Ortakare.Api.Features.Events.CreateEvent;
 using Ortakare.Api.Features.Events.GetEvent;
 using Ortakare.Api.Features.Events.GetMyEvents;
+using Ortakare.Api.Features.Events.ReopenEvent;
 using Ortakare.Api.Features.Events.UpdateEvent;
 
 namespace Ortakare.Api.Features.Events;
@@ -17,7 +18,8 @@ public sealed class EventsController(
     GetMyEventsHandler getMyEventsHandler,
     GetEventHandler getEventHandler,
     UpdateEventHandler updateEventHandler,
-    CloseEventHandler closeEventHandler) : ControllerBase
+    CloseEventHandler closeEventHandler,
+    ReopenEventHandler reopenEventHandler) : ControllerBase
 {
     [HttpPost]
     [ProducesResponseType(typeof(ApiResult<CreateEventResponse>), StatusCodes.Status201Created)]
@@ -67,6 +69,16 @@ public sealed class EventsController(
     public async Task<IActionResult> Close(Guid eventId, CancellationToken cancellationToken)
     {
         var result = await closeEventHandler.HandleAsync(eventId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{eventId:guid}/reopen")]
+    [ProducesResponseType(typeof(ApiResult<ReopenEventResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Reopen(Guid eventId, CancellationToken cancellationToken)
+    {
+        var result = await reopenEventHandler.HandleAsync(eventId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
