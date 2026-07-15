@@ -4,6 +4,7 @@ using Ortakare.Api.Common;
 using Ortakare.Api.Features.Dashboard.GetOwnerDashboardSummary;
 using Ortakare.Api.Features.Dashboard.GetOwnerRecentActivity;
 using Ortakare.Api.Features.Dashboard.GetOwnerStorageBreakdown;
+using Ortakare.Api.Features.Dashboard.GetOwnerStorageQuota;
 
 namespace Ortakare.Api.Features.Dashboard;
 
@@ -13,7 +14,8 @@ namespace Ortakare.Api.Features.Dashboard;
 public sealed class DashboardController(
     GetOwnerDashboardSummaryHandler getOwnerDashboardSummaryHandler,
     GetOwnerRecentActivityHandler getOwnerRecentActivityHandler,
-    GetOwnerStorageBreakdownHandler getOwnerStorageBreakdownHandler) : ControllerBase
+    GetOwnerStorageBreakdownHandler getOwnerStorageBreakdownHandler,
+    GetOwnerStorageQuotaHandler getOwnerStorageQuotaHandler) : ControllerBase
 {
     [HttpGet("summary")]
     [ProducesResponseType(typeof(ApiResult<GetOwnerDashboardSummaryResponse>), StatusCodes.Status200OK)]
@@ -45,6 +47,15 @@ public sealed class DashboardController(
         CancellationToken cancellationToken)
     {
         var result = await getOwnerStorageBreakdownHandler.HandleAsync(request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("storage-quota")]
+    [ProducesResponseType(typeof(ApiResult<GetOwnerStorageQuotaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetStorageQuota(CancellationToken cancellationToken)
+    {
+        var result = await getOwnerStorageQuotaHandler.HandleAsync(cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
