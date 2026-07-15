@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.Participants;
+using Ortakare.Api.Features.Storage;
 using Ortakare.Api.Infrastructure.ObjectStorage;
 using Ortakare.Api.Infrastructure.Persistence;
 
@@ -10,6 +11,7 @@ public sealed class UploadPhotoHandler(
     OrtakareDbContext dbContext,
     ParticipantTokenService participantTokenService,
     ImageFileInspector imageFileInspector,
+    StorageUploadPolicyService storageUploadPolicyService,
     IObjectStorageService objectStorageService,
     TimeProvider timeProvider)
 {
@@ -46,6 +48,7 @@ public sealed class UploadPhotoHandler(
             {
                 ParticipantId = participant.Id,
                 EventId = eventEntity.Id,
+                eventEntity.OwnerUserId,
                 participant.IsBlocked,
                 eventEntity.UploadsEnabled
             })
@@ -91,6 +94,21 @@ public sealed class UploadPhotoHandler(
         }
 
         var file = request.File!;
+        var uploadDecision = await storageUploadPolicyService.EvaluateAsync(
+            participantInfo.OwnerUserId,
+            participantInfo.UploadsEnabled,
+            1,
+            file.Length,
+            file.Length,
+            cancellationToken);
+
+        if (!uploadDecision.CanUpload)
+        {
+            return ApiResult<UploadPhotoResponse>.Failure(
+                uploadDecision.Message ?? "Fotoğraf yükleme kuralları karşılanmadı.",
+                StatusCodes.Status409Conflict);
+        }
+
         await using var stream = file.OpenReadStream();
         var imageInfo = await imageFileInspector.InspectAsync(stream, cancellationToken);
 
