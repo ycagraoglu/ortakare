@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Amazon.S3;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -6,6 +7,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -17,6 +19,7 @@ using Ortakare.Api.Infrastructure.Authentication;
 using Ortakare.Api.Infrastructure.BackgroundJobs;
 using Ortakare.Api.Infrastructure.ObjectStorage;
 using Ortakare.Api.Infrastructure.Persistence;
+using Ortakare.Api.Infrastructure.RateLimiting;
 using Ortakare.Api.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,6 +48,38 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddFeatureHandlers();
+
+builder.Services
+    .AddOptions<RateLimitingOptions>()
+    .BindConfiguration(RateLimitingOptions.SectionName)
+    .Validate(x => x.AuthPermitLimit > 0, "RateLimiting:AuthPermitLimit must be greater than zero.")
+    .Validate(x => x.PublicPermitLimit > 0, "RateLimiting:PublicPermitLimit must be greater than zero.")
+    .Validate(x => x.UploadPermitLimit > 0, "RateLimiting:UploadPermitLimit must be greater than zero.")
+    .Validate(x => x.OwnerPermitLimit > 0, "RateLimiting:OwnerPermitLimit must be greater than zero.")
+    .Validate(x => x.WindowSeconds is > 0 and <= 3600, "RateLimiting:WindowSeconds must be between 1 and 3600.")
+    .ValidateOnStart();
+
+var rateLimitingOptions = builder.Configuration
+    .GetRequiredSection(RateLimitingOptions.SectionName)
+    .Get<RateLimitingOptions>()
+    ?? throw new InvalidOperationException("RateLimiting configuration is required.");
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            ApiResult.Failure("Çok fazla istek gönderildi. Lütfen kısa bir süre sonra tekrar deneyin.", StatusCodes.Status429TooManyRequests),
+            cancellationToken);
+    };
+
+    AddFixedWindowPolicy(options, RateLimitingPolicies.Auth, rateLimitingOptions.AuthPermitLimit, rateLimitingOptions.WindowSeconds);
+    AddFixedWindowPolicy(options, RateLimitingPolicies.Public, rateLimitingOptions.PublicPermitLimit, rateLimitingOptions.WindowSeconds);
+    AddFixedWindowPolicy(options, RateLimitingPolicies.Upload, rateLimitingOptions.UploadPermitLimit, rateLimitingOptions.WindowSeconds);
+    AddFixedWindowPolicy(options, RateLimitingPolicies.Owner, rateLimitingOptions.OwnerPermitLimit, rateLimitingOptions.WindowSeconds);
+});
 
 builder.Services
     .AddOptions<PhotoUploadOptions>()
@@ -146,10 +181,35 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static void AddFixedWindowPolicy(
+    RateLimiterOptions options,
+    string policyName,
+    int permitLimit,
+    int windowSeconds)
+{
+    options.AddPolicy(policyName, httpContext =>
+    {
+        var partitionKey = httpContext.User.Identity?.IsAuthenticated == true
+            ? $"user:{httpContext.User.FindFirst("sub")?.Value ?? "unknown"}"
+            : $"ip:{httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = permitLimit,
+                Window = TimeSpan.FromSeconds(windowSeconds),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+}
 
 public partial class Program;
