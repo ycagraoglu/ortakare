@@ -4,6 +4,7 @@ using Ortakare.Api.Common;
 using Ortakare.Api.Features.Participants.BlockEventParticipant;
 using Ortakare.Api.Features.Participants.DeleteEventParticipant;
 using Ortakare.Api.Features.Participants.GetEventParticipants;
+using Ortakare.Api.Features.Participants.UnblockEventParticipant;
 
 namespace Ortakare.Api.Features.Participants;
 
@@ -13,7 +14,8 @@ namespace Ortakare.Api.Features.Participants;
 public sealed class EventParticipantsController(
     GetEventParticipantsHandler getEventParticipantsHandler,
     DeleteEventParticipantHandler deleteEventParticipantHandler,
-    BlockEventParticipantHandler blockEventParticipantHandler) : ControllerBase
+    BlockEventParticipantHandler blockEventParticipantHandler,
+    UnblockEventParticipantHandler unblockEventParticipantHandler) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(ApiResult<GetEventParticipantsResponse>), StatusCodes.Status200OK)]
@@ -43,6 +45,23 @@ public sealed class EventParticipantsController(
         CancellationToken cancellationToken)
     {
         var result = await blockEventParticipantHandler.HandleAsync(
+            eventId,
+            participantId,
+            cancellationToken);
+
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{participantId:guid}/unblock")]
+    [ProducesResponseType(typeof(ApiResult<UnblockEventParticipantResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Unblock(
+        Guid eventId,
+        Guid participantId,
+        CancellationToken cancellationToken)
+    {
+        var result = await unblockEventParticipantHandler.HandleAsync(
             eventId,
             participantId,
             cancellationToken);
