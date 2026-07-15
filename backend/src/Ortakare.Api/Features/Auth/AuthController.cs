@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.Auth.Login;
+using Ortakare.Api.Features.Auth.Logout;
 using Ortakare.Api.Features.Auth.Refresh;
 using Ortakare.Api.Features.Auth.Register;
 
@@ -11,7 +12,8 @@ namespace Ortakare.Api.Features.Auth;
 public sealed class AuthController(
     RegisterHandler registerHandler,
     LoginHandler loginHandler,
-    RefreshHandler refreshHandler) : ControllerBase
+    RefreshHandler refreshHandler,
+    LogoutHandler logoutHandler) : ControllerBase
 {
     [HttpPost("register")]
     [ProducesResponseType(typeof(ApiResult<RegisterResponse>), StatusCodes.Status201Created)]
@@ -46,6 +48,17 @@ public sealed class AuthController(
         CancellationToken cancellationToken)
     {
         var result = await refreshHandler.HandleAsync(request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Logout(
+        [FromBody] LogoutRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await logoutHandler.HandleAsync(request, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
