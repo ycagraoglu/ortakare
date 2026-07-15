@@ -47,9 +47,7 @@ public sealed class GetEventRecentActivityHandler(
 
         var recentPhotoRows = await dbContext.EventGuestPhotos
             .AsNoTracking()
-            .Where(x => x.EventId == eventId)
-            .OrderByDescending(x => x.CreatedAtUtc)
-            .Take(request.Limit)
+            .Where(photo => photo.EventId == eventId)
             .Join(
                 dbContext.EventGuestParticipants.AsNoTracking(),
                 photo => photo.ParticipantId,
@@ -64,6 +62,8 @@ public sealed class GetEventRecentActivityHandler(
                     photo.CreatedAtUtc,
                     photo.StorageKey
                 })
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .Take(request.Limit)
             .ToListAsync(cancellationToken);
 
         var readUrlExpiresAtUtc = timeProvider.GetUtcNow()
