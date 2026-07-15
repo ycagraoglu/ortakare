@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.Photos.DeleteGuestPhoto;
 using Ortakare.Api.Features.Photos.UploadPhoto;
+using Ortakare.Api.Infrastructure.RateLimiting;
 
 namespace Ortakare.Api.Features.Photos;
 
@@ -14,6 +16,7 @@ public sealed class PublicPhotosController(
     DeleteGuestPhotoHandler deleteGuestPhotoHandler) : ControllerBase
 {
     [HttpPost]
+    [EnableRateLimiting(RateLimitingPolicies.Upload)]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ApiResult<UploadPhotoResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResult<UploadPhotoResponse>), StatusCodes.Status200OK)]
@@ -28,17 +31,12 @@ public sealed class PublicPhotosController(
         [FromForm] UploadPhotoRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await uploadPhotoHandler.HandleAsync(
-            galleryToken,
-            participantToken,
-            clientUploadId,
-            request,
-            cancellationToken);
-
+        var result = await uploadPhotoHandler.HandleAsync(galleryToken, participantToken, clientUploadId, request, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 
     [HttpDelete("{photoId:guid}")]
+    [EnableRateLimiting(RateLimitingPolicies.Public)]
     [ProducesResponseType(typeof(ApiResult<DeleteGuestPhotoResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
@@ -48,12 +46,7 @@ public sealed class PublicPhotosController(
         [FromHeader(Name = "X-Participant-Token")] string participantToken,
         CancellationToken cancellationToken)
     {
-        var result = await deleteGuestPhotoHandler.HandleAsync(
-            galleryToken,
-            participantToken,
-            photoId,
-            cancellationToken);
-
+        var result = await deleteGuestPhotoHandler.HandleAsync(galleryToken, participantToken, photoId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
