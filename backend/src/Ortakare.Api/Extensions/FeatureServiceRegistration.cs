@@ -9,9 +9,11 @@ using Ortakare.Api.Features.Dashboard.GetOwnerStorageBreakdown;
 using Ortakare.Api.Features.Dashboard.GetOwnerStorageQuota;
 using Ortakare.Api.Features.EventAudit;
 using Ortakare.Api.Features.EventAudit.GetEventAuditLogs;
+using Ortakare.Api.Features.EventAudit.Handlers;
 using Ortakare.Api.Features.Events.CloseEvent;
 using Ortakare.Api.Features.Events.CreateEvent;
 using Ortakare.Api.Features.Events.DeleteEvent;
+using Ortakare.Api.Features.Events.DomainEvents;
 using Ortakare.Api.Features.Events.GetEvent;
 using Ortakare.Api.Features.Events.GetEventRecentActivity;
 using Ortakare.Api.Features.Events.GetEventSummary;
@@ -48,6 +50,7 @@ using Ortakare.Api.Features.System.Health;
 using Ortakare.Api.Features.Users;
 using Ortakare.Api.Infrastructure.Authentication;
 using Ortakare.Api.Infrastructure.BackgroundJobs;
+using Ortakare.Api.Infrastructure.DomainEvents;
 
 namespace Ortakare.Api.Extensions;
 
@@ -66,6 +69,9 @@ public static class FeatureServiceRegistration
         services.AddScoped<GetOwnerStorageQuotaHandler>();
         services.AddScoped<EventAuditWriter>();
         services.AddScoped<GetEventAuditLogsHandler>();
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<IDomainEventHandler<EventClosedDomainEvent>, EventClosedAuditHandler>();
+        services.AddScoped<IDomainEventHandler<EventReopenedDomainEvent>, EventReopenedAuditHandler>();
         services.AddScoped<StorageUploadPolicyService>();
         services.AddScoped<GetUploadPolicyHandler>();
         services.AddScoped<GetStorageUsageTrendHandler>();
