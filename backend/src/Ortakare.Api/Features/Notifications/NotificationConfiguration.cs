@@ -13,8 +13,10 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.Type).HasMaxLength(80).IsRequired();
+        builder.Property(x => x.Severity).HasMaxLength(20).IsRequired();
         builder.Property(x => x.Title).HasMaxLength(160).IsRequired();
         builder.Property(x => x.Message).HasMaxLength(500).IsRequired();
+        builder.Property(x => x.ActionUrl).HasMaxLength(300);
         builder.Property(x => x.DataJson).HasColumnType("jsonb");
 
         builder.HasIndex(x => new { x.OwnerUserId, x.ReadAtUtc, x.CreatedAtUtc });
