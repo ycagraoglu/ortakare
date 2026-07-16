@@ -45,6 +45,49 @@ public sealed class GetMyNotificationsHandlerTests
     }
 
     [Fact]
+    public async Task HandleAsync_UsesNotificationIdAsStableTieBreakerForSameTimestamp()
+    {
+        var ownerUserId = Guid.CreateVersion7();
+        var createdAtUtc = new DateTime(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc);
+        await using var dbContext = CreateDbContext();
+
+        var firstId = Guid.Parse("01900000-0000-7000-8000-000000000003");
+        var secondId = Guid.Parse("01900000-0000-7000-8000-000000000002");
+        var thirdId = Guid.Parse("01900000-0000-7000-8000-000000000001");
+
+        dbContext.Notifications.AddRange(
+            CreateNotification(ownerUserId, null, createdAtUtc, "First", firstId),
+            CreateNotification(ownerUserId, null, createdAtUtc, "Second", secondId),
+            CreateNotification(ownerUserId, null, createdAtUtc, "Third", thirdId));
+        await dbContext.SaveChangesAsync();
+
+        var handler = new GetMyNotificationsHandler(dbContext, new TestCurrentUser(ownerUserId));
+
+        var firstPage = await handler.HandleAsync(null, 2, CancellationToken.None);
+        var secondPage = await handler.HandleAsync(firstPage.Data!.NextCursor, 2, CancellationToken.None);
+
+        Assert.Equal(new[] { firstId, secondId }, firstPage.Data.Items.Select(x => x.NotificationId));
+        Assert.Single(secondPage.Data!.Items);
+        Assert.Equal(thirdId, secondPage.Data.Items[0].NotificationId);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(51)]
+    public async Task HandleAsync_ReturnsBadRequestForInvalidPageSize(int pageSize)
+    {
+        await using var dbContext = CreateDbContext();
+        var handler = new GetMyNotificationsHandler(
+            dbContext,
+            new TestCurrentUser(Guid.CreateVersion7()));
+
+        var result = await handler.HandleAsync(null, pageSize, CancellationToken.None);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(400, result.StatusCode);
+    }
+
+    [Fact]
     public async Task HandleAsync_ReturnsBadRequestForInvalidCursor()
     {
         await using var dbContext = CreateDbContext();
@@ -62,9 +105,10 @@ public sealed class GetMyNotificationsHandlerTests
         Guid ownerUserId,
         Guid? eventId,
         DateTime createdAtUtc,
-        string title) => new()
+        string title,
+        Guid? notificationId = null) => new()
     {
-        Id = Guid.CreateVersion7(),
+        Id = notificationId ?? Guid.CreateVersion7(),
         OwnerUserId = ownerUserId,
         EventId = eventId,
         Type = "Test",
