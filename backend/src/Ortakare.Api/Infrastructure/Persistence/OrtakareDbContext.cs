@@ -3,9 +3,11 @@ using Ortakare.Api.Features.Auth.RefreshTokens;
 using Ortakare.Api.Features.EventAudit;
 using Ortakare.Api.Features.Events;
 using Ortakare.Api.Features.GalleryExports;
+using Ortakare.Api.Features.Notifications;
 using Ortakare.Api.Features.Participants;
 using Ortakare.Api.Features.Photos;
 using Ortakare.Api.Features.Users;
+using Ortakare.Api.Infrastructure.Outbox;
 
 namespace Ortakare.Api.Infrastructure.Persistence;
 
@@ -19,6 +21,8 @@ public sealed class OrtakareDbContext(DbContextOptions<OrtakareDbContext> option
     public DbSet<EventGuestPhoto> EventGuestPhotos => Set<EventGuestPhoto>();
     public DbSet<GalleryExport> GalleryExports => Set<GalleryExport>();
     public DbSet<EventAuditLog> EventAuditLogs => Set<EventAuditLog>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
