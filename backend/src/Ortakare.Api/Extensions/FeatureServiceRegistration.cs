@@ -30,6 +30,7 @@ using Ortakare.Api.Features.GalleryExports.RetryFailedGalleryExport;
 using Ortakare.Api.Features.Participants;
 using Ortakare.Api.Features.Participants.BlockEventParticipant;
 using Ortakare.Api.Features.Participants.DeleteEventParticipant;
+using Ortakare.Api.Features.Participants.DomainEvents;
 using Ortakare.Api.Features.Participants.GetEventParticipants;
 using Ortakare.Api.Features.Participants.JoinEvent;
 using Ortakare.Api.Features.Participants.UnblockEventParticipant;
@@ -72,6 +73,8 @@ public static class FeatureServiceRegistration
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IDomainEventHandler<EventClosedDomainEvent>, EventClosedAuditHandler>();
         services.AddScoped<IDomainEventHandler<EventReopenedDomainEvent>, EventReopenedAuditHandler>();
+        services.AddScoped<IDomainEventHandler<ParticipantBlockedDomainEvent>, ParticipantBlockedAuditHandler>();
+        services.AddScoped<IDomainEventHandler<ParticipantUnblockedDomainEvent>, ParticipantUnblockedAuditHandler>();
         services.AddScoped<StorageUploadPolicyService>();
         services.AddScoped<GetUploadPolicyHandler>();
         services.AddScoped<GetStorageUsageTrendHandler>();
