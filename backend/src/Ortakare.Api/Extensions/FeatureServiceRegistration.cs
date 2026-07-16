@@ -31,6 +31,7 @@ using Ortakare.Api.Features.Notifications;
 using Ortakare.Api.Features.Notifications.GetMyNotifications;
 using Ortakare.Api.Features.Notifications.GetUnreadNotificationCount;
 using Ortakare.Api.Features.Notifications.Handlers;
+using Ortakare.Api.Features.Notifications.MarkNotificationAsRead;
 using Ortakare.Api.Features.Participants;
 using Ortakare.Api.Features.Participants.BlockEventParticipant;
 using Ortakare.Api.Features.Participants.DeleteEventParticipant;
@@ -79,6 +80,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<NotificationOutboxWriter>();
         services.AddScoped<GetUnreadNotificationCountHandler>();
         services.AddScoped<GetMyNotificationsHandler>();
+        services.AddScoped<MarkNotificationAsReadHandler>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IDomainEventHandler<EventClosedDomainEvent>, EventClosedAuditHandler>();
         services.AddScoped<IDomainEventHandler<EventReopenedDomainEvent>, EventReopenedAuditHandler>();
