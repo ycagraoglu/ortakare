@@ -1,9 +1,12 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Ortakare.Api.Infrastructure.Persistence.Migrations;
 
+[DbContext(typeof(OrtakareDbContext))]
+[Migration("20260716110000_AddEventAuditLogs")]
 public partial class AddEventAuditLogs : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
