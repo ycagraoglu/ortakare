@@ -28,6 +28,7 @@ using Ortakare.Api.Features.GalleryExports.GetEventExports;
 using Ortakare.Api.Features.GalleryExports.GetGalleryExport;
 using Ortakare.Api.Features.GalleryExports.RetryFailedGalleryExport;
 using Ortakare.Api.Features.Notifications;
+using Ortakare.Api.Features.Notifications.GetUnreadNotificationCount;
 using Ortakare.Api.Features.Notifications.Handlers;
 using Ortakare.Api.Features.Participants;
 using Ortakare.Api.Features.Participants.BlockEventParticipant;
@@ -75,6 +76,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<EventAuditWriter>();
         services.AddScoped<GetEventAuditLogsHandler>();
         services.AddScoped<NotificationOutboxWriter>();
+        services.AddScoped<GetUnreadNotificationCountHandler>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IDomainEventHandler<EventClosedDomainEvent>, EventClosedAuditHandler>();
         services.AddScoped<IDomainEventHandler<EventReopenedDomainEvent>, EventReopenedAuditHandler>();
