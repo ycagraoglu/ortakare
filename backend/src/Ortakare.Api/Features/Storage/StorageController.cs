@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.Storage.GetEventStorageTrend;
+using Ortakare.Api.Features.Storage.GetParticipantStorageBreakdown;
 using Ortakare.Api.Features.Storage.GetStorageUsageTrend;
 using Ortakare.Api.Features.Storage.GetUploadPolicy;
 using Ortakare.Api.Features.Storage.ValidateUpload;
@@ -15,7 +16,8 @@ public sealed class StorageController(
     ValidateUploadHandler validateUploadHandler,
     GetUploadPolicyHandler getUploadPolicyHandler,
     GetStorageUsageTrendHandler getStorageUsageTrendHandler,
-    GetEventStorageTrendHandler getEventStorageTrendHandler) : ControllerBase
+    GetEventStorageTrendHandler getEventStorageTrendHandler,
+    GetParticipantStorageBreakdownHandler getParticipantStorageBreakdownHandler) : ControllerBase
 {
     [HttpGet("upload-policy")]
     [ProducesResponseType(typeof(ApiResult<GetUploadPolicyResponse>), StatusCodes.Status200OK)]
@@ -44,6 +46,20 @@ public sealed class StorageController(
         CancellationToken cancellationToken)
     {
         var result = await getEventStorageTrendHandler.HandleAsync(eventId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("events/{eventId:guid}/participants")]
+    [ProducesResponseType(typeof(ApiResult<GetParticipantStorageBreakdownResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetParticipantStorageBreakdown(
+        Guid eventId,
+        [FromQuery] GetParticipantStorageBreakdownRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await getParticipantStorageBreakdownHandler.HandleAsync(eventId, request, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 
