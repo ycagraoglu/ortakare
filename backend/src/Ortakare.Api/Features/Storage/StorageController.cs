@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
+using Ortakare.Api.Features.Storage.GetStorageUsageTrend;
 using Ortakare.Api.Features.Storage.GetUploadPolicy;
 using Ortakare.Api.Features.Storage.ValidateUpload;
 
@@ -11,7 +12,8 @@ namespace Ortakare.Api.Features.Storage;
 [Route("api/storage")]
 public sealed class StorageController(
     ValidateUploadHandler validateUploadHandler,
-    GetUploadPolicyHandler getUploadPolicyHandler) : ControllerBase
+    GetUploadPolicyHandler getUploadPolicyHandler,
+    GetStorageUsageTrendHandler getStorageUsageTrendHandler) : ControllerBase
 {
     [HttpGet("upload-policy")]
     [ProducesResponseType(typeof(ApiResult<GetUploadPolicyResponse>), StatusCodes.Status200OK)]
@@ -19,6 +21,15 @@ public sealed class StorageController(
     public IActionResult GetUploadPolicy()
     {
         var result = getUploadPolicyHandler.Handle();
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("usage-trend")]
+    [ProducesResponseType(typeof(ApiResult<GetStorageUsageTrendResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetUsageTrend(CancellationToken cancellationToken)
+    {
+        var result = await getStorageUsageTrendHandler.HandleAsync(cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 
