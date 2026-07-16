@@ -55,6 +55,7 @@ using Ortakare.Api.Features.Users;
 using Ortakare.Api.Infrastructure.Authentication;
 using Ortakare.Api.Infrastructure.BackgroundJobs;
 using Ortakare.Api.Infrastructure.DomainEvents;
+using Ortakare.Api.Infrastructure.Outbox;
 
 namespace Ortakare.Api.Extensions;
 
@@ -118,6 +119,12 @@ public static class FeatureServiceRegistration
         services.AddScoped<DeleteGalleryExportHandler>();
         services.AddScoped<CancelPendingGalleryExportHandler>();
         services.AddScoped<BuildGalleryExportJob>();
+
+        services.Configure<OutboxProcessingOptions>(_ => { });
+        services.AddScoped<OutboxProcessor>();
+        services.AddScoped<OutboxDeliveryDispatcher>();
+        services.AddSingleton<IOutboxDeliveryChannel, LoggingOutboxDeliveryChannel>();
+        services.AddHostedService<OutboxProcessingWorker>();
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddSingleton<IAccessTokenService, JwtAccessTokenService>();
