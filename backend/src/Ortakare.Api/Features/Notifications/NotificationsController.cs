@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.Notifications.GetMyNotifications;
 using Ortakare.Api.Features.Notifications.GetUnreadNotificationCount;
+using Ortakare.Api.Features.Notifications.MarkNotificationAsRead;
 
 namespace Ortakare.Api.Features.Notifications;
 
@@ -11,7 +12,8 @@ namespace Ortakare.Api.Features.Notifications;
 [Route("api/notifications")]
 public sealed class NotificationsController(
     GetUnreadNotificationCountHandler getUnreadNotificationCountHandler,
-    GetMyNotificationsHandler getMyNotificationsHandler) : ControllerBase
+    GetMyNotificationsHandler getMyNotificationsHandler,
+    MarkNotificationAsReadHandler markNotificationAsReadHandler) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(ApiResult<GetMyNotificationsResponse>), StatusCodes.Status200OK)]
@@ -35,6 +37,20 @@ public sealed class NotificationsController(
     public async Task<IActionResult> GetUnreadCount(CancellationToken cancellationToken)
     {
         var result = await getUnreadNotificationCountHandler.HandleAsync(cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{notificationId:guid}/read")]
+    [ProducesResponseType(typeof(ApiResult<MarkNotificationAsReadResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> MarkAsRead(
+        Guid notificationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await markNotificationAsReadHandler.HandleAsync(
+            notificationId,
+            cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
