@@ -13,8 +13,15 @@ public sealed class NotificationOutboxWriter(OrtakareDbContext dbContext)
         string title,
         string message,
         DateTime occurredAtUtc,
-        object? data = null)
+        object? data = null,
+        string severity = NotificationSeverities.Info,
+        string? actionUrl = null)
     {
+        if (actionUrl is not null && (!actionUrl.StartsWith('/', StringComparison.Ordinal) || actionUrl.StartsWith("//", StringComparison.Ordinal)))
+        {
+            throw new ArgumentException("Notification action URL must be a local absolute application route.", nameof(actionUrl));
+        }
+
         var dataJson = data is null ? null : JsonSerializer.Serialize(data);
         var notificationId = Guid.CreateVersion7();
 
@@ -24,8 +31,10 @@ public sealed class NotificationOutboxWriter(OrtakareDbContext dbContext)
             OwnerUserId = ownerUserId,
             EventId = eventId,
             Type = type,
+            Severity = severity,
             Title = title,
             Message = message,
+            ActionUrl = actionUrl,
             DataJson = dataJson,
             CreatedAtUtc = occurredAtUtc
         });
@@ -40,8 +49,10 @@ public sealed class NotificationOutboxWriter(OrtakareDbContext dbContext)
                 OwnerUserId = ownerUserId,
                 EventId = eventId,
                 NotificationType = type,
+                Severity = severity,
                 Title = title,
                 Message = message,
+                ActionUrl = actionUrl,
                 DataJson = dataJson,
                 OccurredAtUtc = occurredAtUtc
             }),
