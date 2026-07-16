@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Ortakare.Api.Common;
-using Ortakare.Api.Features.EventAudit;
+using Ortakare.Api.Features.Participants.DomainEvents;
 using Ortakare.Api.Infrastructure.Authentication;
+using Ortakare.Api.Infrastructure.DomainEvents;
 using Ortakare.Api.Infrastructure.Persistence;
 
 namespace Ortakare.Api.Features.Participants.UnblockEventParticipant;
@@ -9,7 +10,8 @@ namespace Ortakare.Api.Features.Participants.UnblockEventParticipant;
 public sealed class UnblockEventParticipantHandler(
     OrtakareDbContext dbContext,
     ICurrentUser currentUser,
-    EventAuditWriter auditWriter)
+    TimeProvider timeProvider,
+    IDomainEventDispatcher domainEventDispatcher)
 {
     public async Task<ApiResult<UnblockEventParticipantResponse>> HandleAsync(
         Guid eventId,
@@ -43,15 +45,18 @@ public sealed class UnblockEventParticipantHandler(
 
         if (participant.IsBlocked)
         {
+            var occurredAtUtc = timeProvider.GetUtcNow().UtcDateTime;
             participant.IsBlocked = false;
             participant.BlockedAtUtc = null;
-            auditWriter.AddOwnerAction(
-                eventId,
-                currentUser.UserId,
-                "ParticipantUnblocked",
-                "Katılımcının etkinlik erişim engeli kaldırıldı.",
-                "Participant",
-                participant.Id);
+
+            await domainEventDispatcher.PublishAsync(
+                new ParticipantUnblockedDomainEvent(
+                    eventId,
+                    currentUser.UserId,
+                    participant.Id,
+                    occurredAtUtc),
+                cancellationToken);
+
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
