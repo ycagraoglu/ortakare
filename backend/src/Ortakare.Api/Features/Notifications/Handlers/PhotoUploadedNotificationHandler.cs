@@ -22,7 +22,9 @@ public sealed class PhotoUploadedNotificationHandler(NotificationOutboxWriter wr
                 domainEvent.ParticipantId,
                 domainEvent.PhotoId,
                 domainEvent.FileSizeBytes
-            });
+            },
+            NotificationSeverities.Info,
+            $"/events/{domainEvent.EventId}/photos");
 
         return Task.CompletedTask;
     }
