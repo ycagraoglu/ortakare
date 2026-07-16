@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Ortakare.Api.Common;
-using Ortakare.Api.Features.EventAudit;
+using Ortakare.Api.Features.Events.DomainEvents;
 using Ortakare.Api.Infrastructure.Authentication;
+using Ortakare.Api.Infrastructure.DomainEvents;
 using Ortakare.Api.Infrastructure.Persistence;
 
 namespace Ortakare.Api.Features.Events.ReopenEvent;
@@ -10,7 +11,7 @@ public sealed class ReopenEventHandler(
     OrtakareDbContext dbContext,
     ICurrentUser currentUser,
     TimeProvider timeProvider,
-    EventAuditWriter auditWriter)
+    IDomainEventDispatcher domainEventDispatcher)
 {
     public async Task<ApiResult<ReopenEventResponse>> HandleAsync(
         Guid eventId,
@@ -30,13 +31,17 @@ public sealed class ReopenEventHandler(
 
         if (!eventEntity.UploadsEnabled)
         {
+            var occurredAtUtc = timeProvider.GetUtcNow().UtcDateTime;
             eventEntity.UploadsEnabled = true;
-            eventEntity.UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
-            auditWriter.AddOwnerAction(
-                eventEntity.Id,
-                currentUser.UserId,
-                "EventReopened",
-                "Etkinlik yeni yüklemelere yeniden açıldı.");
+            eventEntity.UpdatedAtUtc = occurredAtUtc;
+
+            await domainEventDispatcher.PublishAsync(
+                new EventReopenedDomainEvent(
+                    eventEntity.Id,
+                    currentUser.UserId,
+                    occurredAtUtc),
+                cancellationToken);
+
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
