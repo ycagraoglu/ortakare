@@ -38,6 +38,7 @@ using Ortakare.Api.Features.PublicEvents.GetPublicEvent;
 using Ortakare.Api.Features.Storage;
 using Ortakare.Api.Features.Storage.GetEventStorageTrend;
 using Ortakare.Api.Features.Storage.GetParticipantStorageBreakdown;
+using Ortakare.Api.Features.Storage.GetParticipantStorageDetail;
 using Ortakare.Api.Features.Storage.GetStorageUsageTrend;
 using Ortakare.Api.Features.Storage.GetUploadPolicy;
 using Ortakare.Api.Features.Storage.ValidateUpload;
@@ -66,6 +67,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<GetStorageUsageTrendHandler>();
         services.AddScoped<GetEventStorageTrendHandler>();
         services.AddScoped<GetParticipantStorageBreakdownHandler>();
+        services.AddScoped<GetParticipantStorageDetailHandler>();
         services.AddScoped<ValidateUploadHandler>();
         services.AddScoped<CreateEventHandler>();
         services.AddScoped<GetMyEventsHandler>();
