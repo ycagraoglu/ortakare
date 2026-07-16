@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.Participants;
+using Ortakare.Api.Features.Photos.DomainEvents;
 using Ortakare.Api.Features.Storage;
+using Ortakare.Api.Infrastructure.DomainEvents;
 using Ortakare.Api.Infrastructure.ObjectStorage;
 using Ortakare.Api.Infrastructure.Persistence;
 
@@ -13,7 +15,8 @@ public sealed class UploadPhotoHandler(
     ImageFileInspector imageFileInspector,
     StorageUploadPolicyService storageUploadPolicyService,
     IObjectStorageService objectStorageService,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    IDomainEventDispatcher domainEventDispatcher)
 {
     public async Task<ApiResult<UploadPhotoResponse>> HandleAsync(
         string galleryToken,
@@ -129,6 +132,7 @@ public sealed class UploadPhotoHandler(
             file.Length,
             cancellationToken);
 
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var photo = new EventGuestPhoto
         {
             Id = photoId,
@@ -139,10 +143,20 @@ public sealed class UploadPhotoHandler(
             OriginalFileName = Path.GetFileName(file.FileName),
             ContentType = imageInfo.ContentType,
             FileSizeBytes = file.Length,
-            CreatedAtUtc = timeProvider.GetUtcNow().UtcDateTime
+            CreatedAtUtc = now
         };
 
         dbContext.EventGuestPhotos.Add(photo);
+
+        await domainEventDispatcher.PublishAsync(
+            new PhotoUploadedDomainEvent(
+                participantInfo.EventId,
+                participantInfo.OwnerUserId,
+                participantInfo.ParticipantId,
+                photo.Id,
+                photo.FileSizeBytes,
+                now),
+            cancellationToken);
 
         try
         {
