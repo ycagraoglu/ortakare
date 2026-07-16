@@ -3,6 +3,7 @@ using Ortakare.Api.Features.Events;
 using Ortakare.Api.Features.Participants;
 using Ortakare.Api.Features.Participants.UnblockEventParticipant;
 using Ortakare.Api.Infrastructure.Authentication;
+using Ortakare.Api.Infrastructure.DomainEvents;
 using Ortakare.Api.Infrastructure.Persistence;
 
 namespace Ortakare.IntegrationTests.Features.Participants;
@@ -15,20 +16,25 @@ public sealed class UnblockEventParticipantHandlerTests
         var ownerUserId = Guid.CreateVersion7();
         var eventId = Guid.CreateVersion7();
         var participantId = Guid.CreateVersion7();
+        var now = new DateTimeOffset(2026, 7, 16, 9, 0, 0, TimeSpan.Zero);
         await using var dbContext = CreateDbContext();
         dbContext.Events.Add(CreateEvent(eventId, ownerUserId));
         dbContext.EventGuestParticipants.Add(CreateParticipant(participantId, eventId, isBlocked: true));
         await dbContext.SaveChangesAsync();
+        var dispatcher = new RecordingDomainEventDispatcher();
 
         var handler = new UnblockEventParticipantHandler(
             dbContext,
-            new TestCurrentUser(ownerUserId));
+            new TestCurrentUser(ownerUserId),
+            new TestTimeProvider(now),
+            dispatcher);
 
         var result = await handler.HandleAsync(eventId, participantId, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.False(result.Data!.IsBlocked);
         Assert.Null(result.Data.BlockedAtUtc);
+        Assert.Single(dispatcher.PublishedEvents);
 
         var participant = await dbContext.EventGuestParticipants.SingleAsync(x => x.Id == participantId);
         Assert.False(participant.IsBlocked);
@@ -44,15 +50,19 @@ public sealed class UnblockEventParticipantHandlerTests
         dbContext.Events.Add(CreateEvent(eventId, Guid.CreateVersion7()));
         dbContext.EventGuestParticipants.Add(CreateParticipant(participantId, eventId, isBlocked: true));
         await dbContext.SaveChangesAsync();
+        var dispatcher = new RecordingDomainEventDispatcher();
 
         var handler = new UnblockEventParticipantHandler(
             dbContext,
-            new TestCurrentUser(Guid.CreateVersion7()));
+            new TestCurrentUser(Guid.CreateVersion7()),
+            new TestTimeProvider(DateTimeOffset.UtcNow),
+            dispatcher);
 
         var result = await handler.HandleAsync(eventId, participantId, CancellationToken.None);
 
         Assert.False(result.IsSuccess);
         Assert.Equal(404, result.StatusCode);
+        Assert.Empty(dispatcher.PublishedEvents);
         Assert.True((await dbContext.EventGuestParticipants.SingleAsync(x => x.Id == participantId)).IsBlocked);
     }
 
@@ -66,16 +76,20 @@ public sealed class UnblockEventParticipantHandlerTests
         dbContext.Events.Add(CreateEvent(eventId, ownerUserId));
         dbContext.EventGuestParticipants.Add(CreateParticipant(participantId, eventId, isBlocked: false));
         await dbContext.SaveChangesAsync();
+        var dispatcher = new RecordingDomainEventDispatcher();
 
         var handler = new UnblockEventParticipantHandler(
             dbContext,
-            new TestCurrentUser(ownerUserId));
+            new TestCurrentUser(ownerUserId),
+            new TestTimeProvider(DateTimeOffset.UtcNow),
+            dispatcher);
 
         var result = await handler.HandleAsync(eventId, participantId, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         Assert.False(result.Data!.IsBlocked);
         Assert.Null(result.Data.BlockedAtUtc);
+        Assert.Empty(dispatcher.PublishedEvents);
     }
 
     private static OrtakareDbContext CreateDbContext()
@@ -117,5 +131,24 @@ public sealed class UnblockEventParticipantHandlerTests
     private sealed class TestCurrentUser(Guid userId) : ICurrentUser
     {
         public Guid UserId { get; } = userId;
+    }
+
+    private sealed class TestTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => utcNow;
+    }
+
+    private sealed class RecordingDomainEventDispatcher : IDomainEventDispatcher
+    {
+        public List<IDomainEvent> PublishedEvents { get; } = [];
+
+        public Task PublishAsync<TDomainEvent>(
+            TDomainEvent domainEvent,
+            CancellationToken cancellationToken)
+            where TDomainEvent : IDomainEvent
+        {
+            PublishedEvents.Add(domainEvent);
+            return Task.CompletedTask;
+        }
     }
 }
