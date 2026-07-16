@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
+using Ortakare.Api.Features.Storage.GetEventStorageTrend;
 using Ortakare.Api.Features.Storage.GetStorageUsageTrend;
 using Ortakare.Api.Features.Storage.GetUploadPolicy;
 using Ortakare.Api.Features.Storage.ValidateUpload;
@@ -13,7 +14,8 @@ namespace Ortakare.Api.Features.Storage;
 public sealed class StorageController(
     ValidateUploadHandler validateUploadHandler,
     GetUploadPolicyHandler getUploadPolicyHandler,
-    GetStorageUsageTrendHandler getStorageUsageTrendHandler) : ControllerBase
+    GetStorageUsageTrendHandler getStorageUsageTrendHandler,
+    GetEventStorageTrendHandler getEventStorageTrendHandler) : ControllerBase
 {
     [HttpGet("upload-policy")]
     [ProducesResponseType(typeof(ApiResult<GetUploadPolicyResponse>), StatusCodes.Status200OK)]
@@ -30,6 +32,18 @@ public sealed class StorageController(
     public async Task<IActionResult> GetUsageTrend(CancellationToken cancellationToken)
     {
         var result = await getStorageUsageTrendHandler.HandleAsync(cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("events/{eventId:guid}/usage-trend")]
+    [ProducesResponseType(typeof(ApiResult<GetEventStorageTrendResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetEventUsageTrend(
+        Guid eventId,
+        CancellationToken cancellationToken)
+    {
+        var result = await getEventStorageTrendHandler.HandleAsync(eventId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 
