@@ -17,7 +17,9 @@ public sealed class ParticipantJoinedNotificationHandler(NotificationOutboxWrite
             "Yeni katılımcı",
             "Etkinliğinize yeni bir katılımcı katıldı.",
             domainEvent.OccurredAtUtc,
-            new { domainEvent.ParticipantId });
+            new { domainEvent.ParticipantId },
+            NotificationSeverities.Info,
+            $"/events/{domainEvent.EventId}/participants");
 
         return Task.CompletedTask;
     }
