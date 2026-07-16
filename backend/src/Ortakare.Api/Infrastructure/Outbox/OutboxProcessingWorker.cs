@@ -11,6 +11,12 @@ public sealed class OutboxProcessingWorker(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!_options.Enabled)
+        {
+            logger.LogInformation("Outbox processing worker is disabled.");
+            return;
+        }
+
         logger.LogInformation("Outbox processing worker started.");
 
         while (!stoppingToken.IsCancellationRequested)
