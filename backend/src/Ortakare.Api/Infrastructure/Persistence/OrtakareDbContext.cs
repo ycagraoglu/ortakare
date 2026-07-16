@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Ortakare.Api.Features.Auth.RefreshTokens;
+using Ortakare.Api.Features.EventAudit;
 using Ortakare.Api.Features.Events;
 using Ortakare.Api.Features.GalleryExports;
 using Ortakare.Api.Features.Participants;
@@ -17,6 +18,7 @@ public sealed class OrtakareDbContext(DbContextOptions<OrtakareDbContext> option
     public DbSet<EventGuestParticipant> EventGuestParticipants => Set<EventGuestParticipant>();
     public DbSet<EventGuestPhoto> EventGuestPhotos => Set<EventGuestPhoto>();
     public DbSet<GalleryExport> GalleryExports => Set<GalleryExport>();
+    public DbSet<EventAuditLog> EventAuditLogs => Set<EventAuditLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
