@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.Storage.GetEventStorageTrend;
 using Ortakare.Api.Features.Storage.GetParticipantStorageBreakdown;
+using Ortakare.Api.Features.Storage.GetParticipantStorageDetail;
 using Ortakare.Api.Features.Storage.GetStorageUsageTrend;
 using Ortakare.Api.Features.Storage.GetUploadPolicy;
 using Ortakare.Api.Features.Storage.ValidateUpload;
@@ -17,7 +18,8 @@ public sealed class StorageController(
     GetUploadPolicyHandler getUploadPolicyHandler,
     GetStorageUsageTrendHandler getStorageUsageTrendHandler,
     GetEventStorageTrendHandler getEventStorageTrendHandler,
-    GetParticipantStorageBreakdownHandler getParticipantStorageBreakdownHandler) : ControllerBase
+    GetParticipantStorageBreakdownHandler getParticipantStorageBreakdownHandler,
+    GetParticipantStorageDetailHandler getParticipantStorageDetailHandler) : ControllerBase
 {
     [HttpGet("upload-policy")]
     [ProducesResponseType(typeof(ApiResult<GetUploadPolicyResponse>), StatusCodes.Status200OK)]
@@ -60,6 +62,19 @@ public sealed class StorageController(
         CancellationToken cancellationToken)
     {
         var result = await getParticipantStorageBreakdownHandler.HandleAsync(eventId, request, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("events/{eventId:guid}/participants/{participantId:guid}")]
+    [ProducesResponseType(typeof(ApiResult<GetParticipantStorageDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetParticipantStorageDetail(
+        Guid eventId,
+        Guid participantId,
+        CancellationToken cancellationToken)
+    {
+        var result = await getParticipantStorageDetailHandler.HandleAsync(eventId, participantId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 
