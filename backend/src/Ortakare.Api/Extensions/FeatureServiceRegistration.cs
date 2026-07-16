@@ -37,6 +37,7 @@ using Ortakare.Api.Features.Participants.UnblockEventParticipant;
 using Ortakare.Api.Features.Participants.UpdateParticipantDisplayName;
 using Ortakare.Api.Features.Photos.DeleteGuestPhoto;
 using Ortakare.Api.Features.Photos.DeleteOwnerPhoto;
+using Ortakare.Api.Features.Photos.DomainEvents;
 using Ortakare.Api.Features.Photos.GetEventPhotos;
 using Ortakare.Api.Features.Photos.UploadPhoto;
 using Ortakare.Api.Features.PublicEvents.GetPublicEvent;
@@ -75,6 +76,8 @@ public static class FeatureServiceRegistration
         services.AddScoped<IDomainEventHandler<EventReopenedDomainEvent>, EventReopenedAuditHandler>();
         services.AddScoped<IDomainEventHandler<ParticipantBlockedDomainEvent>, ParticipantBlockedAuditHandler>();
         services.AddScoped<IDomainEventHandler<ParticipantUnblockedDomainEvent>, ParticipantUnblockedAuditHandler>();
+        services.AddScoped<IDomainEventHandler<ParticipantJoinedDomainEvent>, ParticipantJoinedAuditHandler>();
+        services.AddScoped<IDomainEventHandler<PhotoUploadedDomainEvent>, PhotoUploadedAuditHandler>();
         services.AddScoped<StorageUploadPolicyService>();
         services.AddScoped<GetUploadPolicyHandler>();
         services.AddScoped<GetStorageUsageTrendHandler>();
