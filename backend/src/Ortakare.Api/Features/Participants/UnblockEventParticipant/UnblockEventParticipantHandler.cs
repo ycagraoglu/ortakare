@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Ortakare.Api.Common;
+using Ortakare.Api.Features.EventAudit;
 using Ortakare.Api.Infrastructure.Authentication;
 using Ortakare.Api.Infrastructure.Persistence;
 
@@ -7,7 +8,8 @@ namespace Ortakare.Api.Features.Participants.UnblockEventParticipant;
 
 public sealed class UnblockEventParticipantHandler(
     OrtakareDbContext dbContext,
-    ICurrentUser currentUser)
+    ICurrentUser currentUser,
+    EventAuditWriter auditWriter)
 {
     public async Task<ApiResult<UnblockEventParticipantResponse>> HandleAsync(
         Guid eventId,
@@ -43,6 +45,13 @@ public sealed class UnblockEventParticipantHandler(
         {
             participant.IsBlocked = false;
             participant.BlockedAtUtc = null;
+            auditWriter.AddOwnerAction(
+                eventId,
+                currentUser.UserId,
+                "ParticipantUnblocked",
+                "Katılımcının etkinlik erişim engeli kaldırıldı.",
+                "Participant",
+                participant.Id);
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
