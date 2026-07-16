@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Ortakare.Api.Common;
-using Ortakare.Api.Features.EventAudit;
+using Ortakare.Api.Features.Participants.DomainEvents;
 using Ortakare.Api.Infrastructure.Authentication;
+using Ortakare.Api.Infrastructure.DomainEvents;
 using Ortakare.Api.Infrastructure.Persistence;
 
 namespace Ortakare.Api.Features.Participants.BlockEventParticipant;
@@ -10,7 +11,7 @@ public sealed class BlockEventParticipantHandler(
     OrtakareDbContext dbContext,
     ICurrentUser currentUser,
     TimeProvider timeProvider,
-    EventAuditWriter auditWriter)
+    IDomainEventDispatcher domainEventDispatcher)
 {
     public async Task<ApiResult<BlockEventParticipantResponse>> HandleAsync(
         Guid eventId,
@@ -44,15 +45,18 @@ public sealed class BlockEventParticipantHandler(
 
         if (!participant.IsBlocked)
         {
+            var blockedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
             participant.IsBlocked = true;
-            participant.BlockedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
-            auditWriter.AddOwnerAction(
-                eventId,
-                currentUser.UserId,
-                "ParticipantBlocked",
-                "Katılımcının etkinlik erişimi engellendi.",
-                "Participant",
-                participant.Id);
+            participant.BlockedAtUtc = blockedAtUtc;
+
+            await domainEventDispatcher.PublishAsync(
+                new ParticipantBlockedDomainEvent(
+                    eventId,
+                    currentUser.UserId,
+                    participant.Id,
+                    blockedAtUtc),
+                cancellationToken);
+
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
