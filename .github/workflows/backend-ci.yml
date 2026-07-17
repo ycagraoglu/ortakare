@@ -2,32 +2,65 @@ name: Backend CI
 
 on:
   push:
+    branches:
+      - main
     paths:
-      - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
   pull_request:
     paths:
-      - 'backend/**'
-      - '.github/workflows/backend-ci.yml'
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
+    name: Build and test backend
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        working-directory: backend
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: 10.0.x
+          cache: true
+          cache-dependency-path: |
+            backend/src/**/*.csproj
+            backend/tests/**/*.csproj
 
       - name: Restore
-        run: dotnet restore backend/Ortakare.slnx
+        run: dotnet restore Ortakare.slnx
 
       - name: Build
-        run: dotnet build backend/Ortakare.slnx --configuration Release --no-restore
+        run: dotnet build Ortakare.slnx --configuration Release --no-restore --warnaserror
 
       - name: Test
-        run: dotnet test backend/Ortakare.slnx --configuration Release --no-build
+        run: >-
+          dotnet test Ortakare.slnx
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory "${{ github.workspace }}/TestResults"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: TestResults
+          if-no-files-found: ignore
+          retention-days: 7
