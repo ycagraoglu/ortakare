@@ -53,6 +53,61 @@ public sealed class CreateGalleryExportEndpointTests : IClassFixture<OrtakareApi
     }
 
     [Fact]
+    public async Task CreateGalleryExport_returns_conflict_when_active_export_already_exists(
+        CancellationToken cancellationToken)
+    {
+        using var client = _factory.CreateClient();
+        var ownerId = await AuthenticateAsync(client, cancellationToken);
+        var eventId = await SeedEventAsync(ownerId, photoCount: 2, cancellationToken);
+
+        var firstResponse = await client.PostAsync($"/api/events/{eventId}/exports", null, cancellationToken);
+        var secondResponse = await client.PostAsync($"/api/events/{eventId}/exports", null, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.Accepted, firstResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, secondResponse.StatusCode);
+
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<OrtakareDbContext>();
+        var activeExportCount = await dbContext.GalleryExports
+            .CountAsync(
+                x => x.EventId == eventId &&
+                     (x.Status == GalleryExportStatus.Pending ||
+                      x.Status == GalleryExportStatus.Processing),
+                cancellationToken);
+
+        Assert.Equal(1, activeExportCount);
+    }
+
+    [Fact]
+    public async Task CreateGalleryExport_allows_new_export_after_previous_export_completed(
+        CancellationToken cancellationToken)
+    {
+        using var client = _factory.CreateClient();
+        var ownerId = await AuthenticateAsync(client, cancellationToken);
+        var eventId = await SeedEventAsync(ownerId, photoCount: 2, cancellationToken);
+
+        var firstResponse = await client.PostAsync($"/api/events/{eventId}/exports", null, cancellationToken);
+        var firstResult = await firstResponse.Content
+            .ReadFromJsonAsync<ApiResult<CreateGalleryExportResponse>>(cancellationToken);
+        Assert.NotNull(firstResult?.Data);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<OrtakareDbContext>();
+            var galleryExport = await dbContext.GalleryExports
+                .SingleAsync(x => x.Id == firstResult.Data.ExportId, cancellationToken);
+            galleryExport.Status = GalleryExportStatus.Completed;
+            galleryExport.CompletedAtUtc = DateTime.UtcNow;
+            galleryExport.StorageKey = $"exports/{eventId}/{galleryExport.Id}.zip";
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        var secondResponse = await client.PostAsync($"/api/events/{eventId}/exports", null, cancellationToken);
+
+        Assert.Equal(HttpStatusCode.Accepted, secondResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task CreateGalleryExport_returns_conflict_when_event_has_no_photos(
         CancellationToken cancellationToken)
     {
