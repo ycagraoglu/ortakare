@@ -1,7 +1,9 @@
 using System.IO.Compression;
 using Hangfire;
+using Hangfire.Server;
 using Microsoft.EntityFrameworkCore;
 using Ortakare.Api.Features.GalleryExports;
+using Ortakare.Api.Features.Notifications;
 using Ortakare.Api.Infrastructure.ObjectStorage;
 using Ortakare.Api.Infrastructure.Persistence;
 
@@ -12,11 +14,15 @@ namespace Ortakare.Api.Infrastructure.BackgroundJobs;
 public sealed class BuildGalleryExportJob(
     OrtakareDbContext dbContext,
     IObjectStorageService objectStorageService,
+    NotificationOutboxWriter notificationOutboxWriter,
     TimeProvider timeProvider,
     ILogger<BuildGalleryExportJob> logger)
 {
+    private const int AutomaticRetryAttempts = 2;
+
     public async Task ExecuteAsync(
         Guid exportId,
+        PerformContext? performContext,
         CancellationToken cancellationToken)
     {
         var galleryExport = await dbContext.GalleryExports
@@ -39,6 +45,21 @@ public sealed class BuildGalleryExportJob(
                 "Gallery export {ExportId} cannot start from status {Status}.",
                 exportId,
                 galleryExport.Status);
+            return;
+        }
+
+        var eventInfo = await dbContext.Events
+            .AsNoTracking()
+            .Where(x => x.Id == galleryExport.EventId)
+            .Select(x => new ExportEventInfo(x.OwnerUserId, x.Title))
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (eventInfo is null)
+        {
+            logger.LogWarning(
+                "Event {EventId} for gallery export {ExportId} was not found.",
+                galleryExport.EventId,
+                exportId);
             return;
         }
 
@@ -84,22 +105,71 @@ public sealed class BuildGalleryExportJob(
                     cancellationToken);
             }
 
+            var completedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+
             galleryExport.Status = GalleryExportStatus.Completed;
             galleryExport.StorageKey = storageKey;
             galleryExport.PhotoCount = photos.Count;
-            galleryExport.CompletedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+            galleryExport.CompletedAtUtc = completedAtUtc;
             galleryExport.FailedAtUtc = null;
             galleryExport.CancelledAtUtc = null;
+
+            notificationOutboxWriter.AddOwnerNotification(
+                eventInfo.OwnerUserId,
+                galleryExport.EventId,
+                "GalleryExportCompleted",
+                "Galeri dışa aktarımı hazır",
+                $"{eventInfo.EventTitle} etkinliğine ait {photos.Count} fotoğraflık ZIP dosyası hazırlandı.",
+                completedAtUtc,
+                new
+                {
+                    ExportId = galleryExport.Id,
+                    PhotoCount = photos.Count,
+                    Status = galleryExport.Status.ToString()
+                },
+                NotificationSeverities.Success,
+                $"/events/{galleryExport.EventId}/exports/{galleryExport.Id}");
+
             await dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Gallery export {ExportId} failed.", exportId);
+            var retryCount = performContext?.GetJobParameter<int>("RetryCount") ?? 0;
+            var isFinalAttempt = retryCount >= AutomaticRetryAttempts;
+            var failedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
 
-            galleryExport.Status = GalleryExportStatus.Failed;
+            logger.LogError(
+                exception,
+                "Gallery export {ExportId} failed. RetryCount: {RetryCount}, IsFinalAttempt: {IsFinalAttempt}.",
+                exportId,
+                retryCount,
+                isFinalAttempt);
+
+            galleryExport.Status = isFinalAttempt
+                ? GalleryExportStatus.Failed
+                : GalleryExportStatus.Pending;
             galleryExport.CompletedAtUtc = null;
             galleryExport.CancelledAtUtc = null;
-            galleryExport.FailedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+            galleryExport.FailedAtUtc = isFinalAttempt ? failedAtUtc : null;
+
+            if (isFinalAttempt)
+            {
+                notificationOutboxWriter.AddOwnerNotification(
+                    eventInfo.OwnerUserId,
+                    galleryExport.EventId,
+                    "GalleryExportFailed",
+                    "Galeri dışa aktarımı başarısız",
+                    $"{eventInfo.EventTitle} etkinliğinin ZIP dosyası hazırlanamadı.",
+                    failedAtUtc,
+                    new
+                    {
+                        ExportId = galleryExport.Id,
+                        Status = GalleryExportStatus.Failed.ToString()
+                    },
+                    NotificationSeverities.Error,
+                    $"/events/{galleryExport.EventId}/exports/{galleryExport.Id}");
+            }
+
             await dbContext.SaveChangesAsync(CancellationToken.None);
             throw;
         }
@@ -164,4 +234,5 @@ public sealed class BuildGalleryExportJob(
     }
 
     private sealed record ExportPhoto(Guid Id, string StorageKey, string ContentType);
+    private sealed record ExportEventInfo(Guid OwnerUserId, string EventTitle);
 }
