@@ -96,6 +96,7 @@ public static class FeatureServiceRegistration
             serviceProvider.GetRequiredService<NotificationSseConnectionManager>());
         services.AddSingleton<IRealtimePublisher>(serviceProvider =>
             serviceProvider.GetRequiredService<NotificationSseConnectionManager>());
+        services.AddSingleton<IRealtimeEventFactory, RealtimeEventFactory>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IDomainEventHandler<EventClosedDomainEvent>, EventClosedAuditHandler>();
         services.AddScoped<IDomainEventHandler<EventReopenedDomainEvent>, EventReopenedAuditHandler>();
