@@ -2,6 +2,8 @@ namespace Ortakare.Api.Features.GalleryExports;
 
 public sealed class GalleryExport
 {
+    public const int RetentionDays = 7;
+
     public Guid Id { get; set; }
     public Guid EventId { get; set; }
     public GalleryExportStatus Status { get; set; }
@@ -12,6 +14,14 @@ public sealed class GalleryExport
     public DateTime? ExpiresAtUtc { get; set; }
     public DateTime? FailedAtUtc { get; set; }
     public DateTime? CancelledAtUtc { get; set; }
+
+    public void EnsureExpiration()
+    {
+        if (Status == GalleryExportStatus.Completed && CompletedAtUtc.HasValue && !ExpiresAtUtc.HasValue)
+        {
+            ExpiresAtUtc = CompletedAtUtc.Value.AddDays(RetentionDays);
+        }
+    }
 }
 
 public enum GalleryExportStatus
