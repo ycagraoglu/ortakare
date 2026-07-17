@@ -48,9 +48,10 @@ public partial class OrtakareDbContextModelSnapshot : ModelSnapshot
         {
             entity.Property<Guid>("Id").ValueGeneratedNever().HasColumnType("uuid");
             entity.Property<DateTime?>("CancelledAtUtc").HasColumnType("timestamp with time zone");
-            entity.Property<DateTime?> ("CompletedAtUtc").HasColumnType("timestamp with time zone");
+            entity.Property<DateTime?>("CompletedAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<Guid>("EventId").HasColumnType("uuid");
+            entity.Property<DateTime?>("ExpiresAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<DateTime?>("FailedAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<int>("PhotoCount").HasColumnType("integer");
             entity.Property<string>("Status").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)");
@@ -58,6 +59,7 @@ public partial class OrtakareDbContextModelSnapshot : ModelSnapshot
             entity.HasKey("Id");
             entity.HasIndex("EventId").IsUnique().HasDatabaseName("UX_GalleryExports_EventId_Active").HasFilter("\"Status\" IN ('Pending', 'Processing')");
             entity.HasIndex("EventId", "CreatedAtUtc");
+            entity.HasIndex("Status", "ExpiresAtUtc");
             entity.ToTable("GalleryExports");
         });
 
