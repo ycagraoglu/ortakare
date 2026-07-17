@@ -28,6 +28,7 @@ using Ortakare.Api.Features.GalleryExports.GetEventExports;
 using Ortakare.Api.Features.GalleryExports.GetGalleryExport;
 using Ortakare.Api.Features.GalleryExports.RetryFailedGalleryExport;
 using Ortakare.Api.Features.Notifications;
+using Ortakare.Api.Features.Notifications.DeleteNotification;
 using Ortakare.Api.Features.Notifications.GetMyNotifications;
 using Ortakare.Api.Features.Notifications.GetUnreadNotificationCount;
 using Ortakare.Api.Features.Notifications.Handlers;
@@ -83,6 +84,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<GetMyNotificationsHandler>();
         services.AddScoped<MarkNotificationAsReadHandler>();
         services.AddScoped<MarkAllNotificationsAsReadHandler>();
+        services.AddScoped<DeleteNotificationHandler>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IDomainEventHandler<EventClosedDomainEvent>, EventClosedAuditHandler>();
         services.AddScoped<IDomainEventHandler<EventReopenedDomainEvent>, EventReopenedAuditHandler>();
@@ -137,6 +139,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
         services.AddSingleton<IAccessTokenService, JwtAccessTokenService>();
         services.AddSingleton<IRefreshTokenService, RefreshTokenService>();
+        services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ParticipantTokenService>();
         services.AddSingleton<ImageFileInspector>();
         services.AddHttpContextAccessor();
