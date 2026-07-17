@@ -18,35 +18,36 @@ public sealed class NotificationStreamController(
     [Produces("text/event-stream")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public IResult Stream([FromQuery] string token)
+    public async Task Stream(
+        [FromQuery] string token,
+        CancellationToken cancellationToken)
     {
         var consumedToken = streamTokenService.Consume(token);
 
         if (consumedToken is null)
         {
-            return Results.Unauthorized();
+            Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
         }
 
         Response.Headers.CacheControl = "no-cache, no-store";
         Response.Headers.Pragma = "no-cache";
         Response.Headers["X-Accel-Buffering"] = "no";
 
-        return TypedResults.ServerSentEvents(
+        var result = TypedResults.ServerSentEvents(
             CreateEventStream(
-                consumedToken.OwnerUserId,
                 options.Value.HeartbeatSeconds,
-                HttpContext.RequestAborted));
+                cancellationToken));
+
+        await result.ExecuteAsync(HttpContext);
     }
 
     private async IAsyncEnumerable<SseItem<NotificationStreamEvent>> CreateEventStream(
-        Guid ownerUserId,
         int heartbeatSeconds,
         [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         yield return new SseItem<NotificationStreamEvent>(
-            new NotificationStreamEvent(
-                ownerUserId,
-                timeProvider.GetUtcNow().UtcDateTime),
+            new NotificationStreamEvent(timeProvider.GetUtcNow().UtcDateTime),
             "connected");
 
         using var heartbeatTimer = new PeriodicTimer(
@@ -72,14 +73,10 @@ public sealed class NotificationStreamController(
             }
 
             yield return new SseItem<NotificationStreamEvent>(
-                new NotificationStreamEvent(
-                    ownerUserId,
-                    timeProvider.GetUtcNow().UtcDateTime),
+                new NotificationStreamEvent(timeProvider.GetUtcNow().UtcDateTime),
                 "heartbeat");
         }
     }
 }
 
-public sealed record NotificationStreamEvent(
-    Guid OwnerUserId,
-    DateTime SentAtUtc);
+public sealed record NotificationStreamEvent(DateTime SentAtUtc);
