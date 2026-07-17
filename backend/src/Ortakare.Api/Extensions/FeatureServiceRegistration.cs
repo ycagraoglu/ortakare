@@ -63,6 +63,7 @@ using Ortakare.Api.Infrastructure.Authentication;
 using Ortakare.Api.Infrastructure.BackgroundJobs;
 using Ortakare.Api.Infrastructure.DomainEvents;
 using Ortakare.Api.Infrastructure.Outbox;
+using Ortakare.Api.Infrastructure.Realtime;
 
 namespace Ortakare.Api.Extensions;
 
@@ -93,7 +94,7 @@ public static class FeatureServiceRegistration
         services.AddSingleton<NotificationSseConnectionManager>();
         services.AddSingleton<INotificationSseConnectionManager>(serviceProvider =>
             serviceProvider.GetRequiredService<NotificationSseConnectionManager>());
-        services.AddSingleton<INotificationRealtimePublisher>(serviceProvider =>
+        services.AddSingleton<IRealtimePublisher>(serviceProvider =>
             serviceProvider.GetRequiredService<NotificationSseConnectionManager>());
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IDomainEventHandler<EventClosedDomainEvent>, EventClosedAuditHandler>();
