@@ -1,19 +1,20 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
-using Ortakare.Api.Features.Notifications.Streaming;
 using Ortakare.Api.Infrastructure.Outbox;
+using Ortakare.Api.Infrastructure.Realtime;
 
 namespace Ortakare.Api.Tests.Infrastructure.Outbox;
 
 public sealed class SseOutboxDeliveryChannelTests
 {
     [Fact]
-    public async Task DeliverAsync_Publishes_Owner_Notification_As_Sse_Event()
+    public async Task DeliverAsync_Publishes_Owner_Notification_As_Realtime_Event()
     {
         var publisher = new RecordingRealtimePublisher();
         var channel = CreateChannel(publisher);
         var notificationId = Guid.NewGuid();
         var ownerUserId = Guid.NewGuid();
+        var occurredAtUtc = DateTime.UtcNow;
         var payloadJson = JsonSerializer.Serialize(new
         {
             NotificationId = notificationId,
@@ -23,7 +24,7 @@ public sealed class SseOutboxDeliveryChannelTests
             Severity = "Info",
             Title = "Yeni fotoğraf",
             Message = "Etkinliğe yeni bir fotoğraf yüklendi.",
-            OccurredAtUtc = DateTime.UtcNow
+            OccurredAtUtc = occurredAtUtc
         });
 
         await channel.DeliverAsync(
@@ -33,9 +34,10 @@ public sealed class SseOutboxDeliveryChannelTests
 
         var published = Assert.Single(publisher.PublishedEvents);
         Assert.Equal(ownerUserId, published.OwnerUserId);
-        Assert.Equal("notification-created", published.Event.EventName);
+        Assert.Equal("NotificationCreated", published.Event.Type);
         Assert.Equal(notificationId.ToString(), published.Event.EventId);
-        Assert.Equal(payloadJson, published.Event.Data);
+        Assert.Equal(payloadJson, published.Event.PayloadJson);
+        Assert.Equal(occurredAtUtc, published.Event.OccurredAtUtc);
     }
 
     [Fact]
@@ -66,29 +68,29 @@ public sealed class SseOutboxDeliveryChannelTests
                 CancellationToken.None));
     }
 
-    private static SseOutboxDeliveryChannel CreateChannel(INotificationRealtimePublisher publisher)
+    private static SseOutboxDeliveryChannel CreateChannel(IRealtimePublisher publisher)
     {
         return new SseOutboxDeliveryChannel(
             publisher,
             NullLogger<SseOutboxDeliveryChannel>.Instance);
     }
 
-    private sealed class RecordingRealtimePublisher : INotificationRealtimePublisher
+    private sealed class RecordingRealtimePublisher : IRealtimePublisher
     {
         public List<PublishedEvent> PublishedEvents { get; } = [];
 
         public ValueTask PublishAsync(
             Guid ownerUserId,
-            NotificationSseEvent notificationEvent,
+            RealtimeEvent realtimeEvent,
             CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            PublishedEvents.Add(new PublishedEvent(ownerUserId, notificationEvent));
+            PublishedEvents.Add(new PublishedEvent(ownerUserId, realtimeEvent));
             return ValueTask.CompletedTask;
         }
     }
 
     private sealed record PublishedEvent(
         Guid OwnerUserId,
-        NotificationSseEvent Event);
+        RealtimeEvent Event);
 }
