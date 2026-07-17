@@ -27,7 +27,8 @@ public sealed class GetGalleryExportDownloadUrlHandler(
             {
                 x.Id,
                 x.Status,
-                x.StorageKey
+                x.StorageKey,
+                x.ExpiresAtUtc
             })
             .SingleOrDefaultAsync(cancellationToken);
 
@@ -45,6 +46,14 @@ public sealed class GetGalleryExportDownloadUrlHandler(
                 StatusCodes.Status409Conflict);
         }
 
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (!galleryExport.ExpiresAtUtc.HasValue || galleryExport.ExpiresAtUtc.Value <= now)
+        {
+            return ApiResult<GetGalleryExportDownloadUrlResponse>.Failure(
+                "Dışa aktarma dosyasının indirme süresi doldu.",
+                StatusCodes.Status410Gone);
+        }
+
         if (string.IsNullOrWhiteSpace(galleryExport.StorageKey))
         {
             return ApiResult<GetGalleryExportDownloadUrlResponse>.Failure(
@@ -52,16 +61,19 @@ public sealed class GetGalleryExportDownloadUrlHandler(
                 StatusCodes.Status404NotFound);
         }
 
-        var expiresAtUtc = timeProvider.GetUtcNow().UtcDateTime
-            .AddMinutes(objectStorageOptions.Value.SignedUrlMinutes);
+        var configuredSignedUrlExpiry = now.AddMinutes(objectStorageOptions.Value.SignedUrlMinutes);
+        var signedUrlExpiresAtUtc = configuredSignedUrlExpiry < galleryExport.ExpiresAtUtc.Value
+            ? configuredSignedUrlExpiry
+            : galleryExport.ExpiresAtUtc.Value;
+
         var downloadUrl = objectStorageService.CreateReadUrl(
             galleryExport.StorageKey,
-            expiresAtUtc);
+            signedUrlExpiresAtUtc);
 
         return ApiResult<GetGalleryExportDownloadUrlResponse>.Success(
             new GetGalleryExportDownloadUrlResponse(
                 galleryExport.Id,
                 downloadUrl,
-                expiresAtUtc));
+                signedUrlExpiresAtUtc));
     }
 }
