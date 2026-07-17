@@ -13,6 +13,7 @@ public sealed class Notification
     public string? DataJson { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? ReadAtUtc { get; set; }
+    public DateTime? DeletedAtUtc { get; set; }
 }
 
 public static class NotificationSeverities
