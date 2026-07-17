@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Ortakare.Api.Common;
+using Ortakare.Api.Features.Notifications.DeleteNotification;
 using Ortakare.Api.Features.Notifications.GetMyNotifications;
 using Ortakare.Api.Features.Notifications.GetUnreadNotificationCount;
 using Ortakare.Api.Features.Notifications.MarkAllNotificationsAsRead;
@@ -15,7 +16,8 @@ public sealed class NotificationsController(
     GetUnreadNotificationCountHandler getUnreadNotificationCountHandler,
     GetMyNotificationsHandler getMyNotificationsHandler,
     MarkNotificationAsReadHandler markNotificationAsReadHandler,
-    MarkAllNotificationsAsReadHandler markAllNotificationsAsReadHandler) : ControllerBase
+    MarkAllNotificationsAsReadHandler markAllNotificationsAsReadHandler,
+    DeleteNotificationHandler deleteNotificationHandler) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(ApiResult<GetMyNotificationsResponse>), StatusCodes.Status200OK)]
@@ -62,6 +64,20 @@ public sealed class NotificationsController(
     public async Task<IActionResult> MarkAllAsRead(CancellationToken cancellationToken)
     {
         var result = await markAllNotificationsAsReadHandler.HandleAsync(cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpDelete("{notificationId:guid}")]
+    [ProducesResponseType(typeof(ApiResult<DeleteNotificationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Delete(
+        Guid notificationId,
+        CancellationToken cancellationToken)
+    {
+        var result = await deleteNotificationHandler.HandleAsync(
+            notificationId,
+            cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 }
