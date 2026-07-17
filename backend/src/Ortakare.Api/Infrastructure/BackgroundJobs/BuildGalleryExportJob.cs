@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Text.Json;
 using Hangfire;
 using Hangfire.Server;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using Ortakare.Api.Features.GalleryExports;
 using Ortakare.Api.Features.Notifications;
 using Ortakare.Api.Infrastructure.ObjectStorage;
 using Ortakare.Api.Infrastructure.Persistence;
+using Ortakare.Api.Infrastructure.Realtime;
 
 namespace Ortakare.Api.Infrastructure.BackgroundJobs;
 
@@ -15,10 +17,13 @@ public sealed class BuildGalleryExportJob(
     OrtakareDbContext dbContext,
     IObjectStorageService objectStorageService,
     NotificationOutboxWriter notificationOutboxWriter,
+    IRealtimePublisher realtimePublisher,
     TimeProvider timeProvider,
     ILogger<BuildGalleryExportJob> logger)
 {
     private const int AutomaticRetryAttempts = 2;
+    private const int ZipProgressMaximum = 90;
+    private const int UploadProgress = 95;
 
     public async Task ExecuteAsync(
         Guid exportId,
@@ -68,6 +73,15 @@ public sealed class BuildGalleryExportJob(
         galleryExport.CancelledAtUtc = null;
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        await PublishProgressAsync(
+            eventInfo.OwnerUserId,
+            galleryExport,
+            progress: 0,
+            processedPhotoCount: 0,
+            totalPhotoCount: null,
+            stage: "Preparing",
+            cancellationToken);
+
         var tempFilePath = Path.Combine(
             Path.GetTempPath(),
             $"ortakare-export-{galleryExport.Id:N}.zip");
@@ -86,7 +100,39 @@ public sealed class BuildGalleryExportJob(
                 throw new InvalidOperationException("Export edilecek fotoğraf bulunamadı.");
             }
 
-            await CreateZipAsync(tempFilePath, photos, cancellationToken);
+            await PublishProgressAsync(
+                eventInfo.OwnerUserId,
+                galleryExport,
+                progress: 1,
+                processedPhotoCount: 0,
+                totalPhotoCount: photos.Count,
+                stage: "Compressing",
+                cancellationToken);
+
+            await CreateZipAsync(
+                tempFilePath,
+                photos,
+                async (processedCount, progress, token) =>
+                {
+                    await PublishProgressAsync(
+                        eventInfo.OwnerUserId,
+                        galleryExport,
+                        progress,
+                        processedCount,
+                        photos.Count,
+                        "Compressing",
+                        token);
+                },
+                cancellationToken);
+
+            await PublishProgressAsync(
+                eventInfo.OwnerUserId,
+                galleryExport,
+                UploadProgress,
+                photos.Count,
+                photos.Count,
+                "Uploading",
+                cancellationToken);
 
             var storageKey = $"exports/{galleryExport.EventId:N}/{galleryExport.Id:N}.zip";
             await using (var zipStream = new FileStream(
@@ -131,6 +177,15 @@ public sealed class BuildGalleryExportJob(
                 $"/events/{galleryExport.EventId}/exports/{galleryExport.Id}");
 
             await dbContext.SaveChangesAsync(cancellationToken);
+
+            await PublishProgressAsync(
+                eventInfo.OwnerUserId,
+                galleryExport,
+                progress: 100,
+                processedPhotoCount: photos.Count,
+                totalPhotoCount: photos.Count,
+                stage: "Completed",
+                cancellationToken);
         }
         catch (Exception exception)
         {
@@ -171,6 +226,16 @@ public sealed class BuildGalleryExportJob(
             }
 
             await dbContext.SaveChangesAsync(CancellationToken.None);
+
+            await PublishProgressAsync(
+                eventInfo.OwnerUserId,
+                galleryExport,
+                progress: 0,
+                processedPhotoCount: 0,
+                totalPhotoCount: null,
+                stage: isFinalAttempt ? "Failed" : "Retrying",
+                CancellationToken.None);
+
             throw;
         }
         finally
@@ -182,6 +247,7 @@ public sealed class BuildGalleryExportJob(
     private async Task CreateZipAsync(
         string tempFilePath,
         IReadOnlyList<ExportPhoto> photos,
+        Func<int, int, CancellationToken, Task> progressCallback,
         CancellationToken cancellationToken)
     {
         await using var fileStream = new FileStream(
@@ -193,6 +259,7 @@ public sealed class BuildGalleryExportJob(
             useAsync: true);
 
         using var archive = new ZipArchive(fileStream, ZipArchiveMode.Create, leaveOpen: true);
+        var lastPublishedProgress = 0;
 
         for (var index = 0; index < photos.Count; index++)
         {
@@ -206,7 +273,48 @@ public sealed class BuildGalleryExportJob(
                 cancellationToken);
             await using var target = entry.Open();
             await source.CopyToAsync(target, cancellationToken);
+
+            var processedCount = index + 1;
+            var progress = Math.Max(1, processedCount * ZipProgressMaximum / photos.Count);
+
+            if (progress >= lastPublishedProgress + 5 || processedCount == photos.Count)
+            {
+                lastPublishedProgress = progress;
+                await progressCallback(processedCount, progress, cancellationToken);
+            }
         }
+    }
+
+    private ValueTask PublishProgressAsync(
+        Guid ownerUserId,
+        GalleryExport galleryExport,
+        int progress,
+        int processedPhotoCount,
+        int? totalPhotoCount,
+        string stage,
+        CancellationToken cancellationToken)
+    {
+        var occurredAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+        var payloadJson = JsonSerializer.Serialize(new
+        {
+            exportId = galleryExport.Id,
+            eventId = galleryExport.EventId,
+            status = galleryExport.Status.ToString(),
+            progress,
+            processedPhotoCount,
+            totalPhotoCount,
+            stage,
+            occurredAtUtc
+        });
+
+        return realtimePublisher.PublishAsync(
+            ownerUserId,
+            new RealtimeEvent(
+                Type: "GalleryExportProgress",
+                PayloadJson: payloadJson,
+                EventId: galleryExport.Id.ToString(),
+                OccurredAtUtc: occurredAtUtc),
+            cancellationToken);
     }
 
     private static string GetExtension(string contentType) => contentType switch
