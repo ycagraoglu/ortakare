@@ -16,6 +16,7 @@ using Microsoft.IdentityModel.Tokens;
 using Ortakare.Api.Common;
 using Ortakare.Api.Extensions;
 using Ortakare.Api.Features.GalleryExports;
+using Ortakare.Api.Features.Notifications.Streaming;
 using Ortakare.Api.Features.Photos.UploadPhoto;
 using Ortakare.Api.Infrastructure.Authentication;
 using Ortakare.Api.Infrastructure.BackgroundJobs;
@@ -95,6 +96,11 @@ builder.Services.AddRateLimiter(options =>
     AddFixedWindowPolicy(options, RateLimitingPolicies.Upload, rateLimitingOptions.UploadPermitLimit, rateLimitingOptions.WindowSeconds);
     AddFixedWindowPolicy(options, RateLimitingPolicies.Owner, rateLimitingOptions.OwnerPermitLimit, rateLimitingOptions.WindowSeconds);
 });
+
+builder.Services.AddOptions<NotificationStreamOptions>()
+    .BindConfiguration(NotificationStreamOptions.SectionName)
+    .Validate(x => x.TokenLifetimeSeconds is >= 15 and <= 300, "NotificationStream:TokenLifetimeSeconds must be between 15 and 300.")
+    .ValidateOnStart();
 
 builder.Services.AddOptions<PhotoUploadOptions>()
     .BindConfiguration(PhotoUploadOptions.SectionName)
