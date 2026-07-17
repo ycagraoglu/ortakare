@@ -21,8 +21,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  runner-smoke-test:
+    name: Runner smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify runner
+        shell: bash
+        run: |
+          echo "Runner is available"
+          uname -a
+          pwd
+          dotnet --info
+
   build-and-test:
     name: Build and test backend
+    needs: runner-smoke-test
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
