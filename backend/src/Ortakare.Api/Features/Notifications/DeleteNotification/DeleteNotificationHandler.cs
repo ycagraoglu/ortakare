@@ -8,7 +8,8 @@ namespace Ortakare.Api.Features.Notifications.DeleteNotification;
 public sealed class DeleteNotificationHandler(
     OrtakareDbContext dbContext,
     ICurrentUser currentUser,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    OwnerUnreadCountOutboxWriter unreadCountOutboxWriter)
 {
     public async Task<ApiResult<DeleteNotificationResponse>> HandleAsync(
         Guid notificationId,
@@ -29,7 +30,14 @@ public sealed class DeleteNotificationHandler(
 
         if (notification.DeletedAtUtc is null)
         {
+            var wasUnread = notification.ReadAtUtc is null;
             notification.DeletedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+
+            if (wasUnread)
+            {
+                unreadCountOutboxWriter.Add(currentUser.UserId);
+            }
+
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
