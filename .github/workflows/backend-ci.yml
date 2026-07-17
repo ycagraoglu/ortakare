@@ -38,10 +38,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-          cache: true
-          cache-dependency-path: |
-            backend/src/**/*.csproj
-            backend/tests/**/*.csproj
 
       - name: Restore
         run: dotnet restore Ortakare.slnx
