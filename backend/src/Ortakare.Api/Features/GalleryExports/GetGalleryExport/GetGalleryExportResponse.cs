@@ -6,4 +6,6 @@ public sealed record GetGalleryExportResponse(
     int PhotoCount,
     DateTime CreatedAtUtc,
     DateTime? CompletedAtUtc,
+    DateTime? ExpiresAtUtc,
+    bool IsExpired,
     DateTime? FailedAtUtc);
