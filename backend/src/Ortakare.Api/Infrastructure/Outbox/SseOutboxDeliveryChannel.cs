@@ -1,13 +1,14 @@
 using System.Text.Json;
-using Ortakare.Api.Features.Notifications.Streaming;
+using Ortakare.Api.Infrastructure.Realtime;
 
 namespace Ortakare.Api.Infrastructure.Outbox;
 
 public sealed class SseOutboxDeliveryChannel(
-    INotificationRealtimePublisher realtimePublisher,
+    IRealtimePublisher realtimePublisher,
     ILogger<SseOutboxDeliveryChannel> logger) : IOutboxDeliveryChannel
 {
     private const string OwnerNotificationCreatedMessageType = "OwnerNotificationCreated";
+    private const string NotificationCreatedEventType = "NotificationCreated";
 
     public async Task DeliverAsync(
         string messageType,
@@ -29,19 +30,21 @@ public sealed class SseOutboxDeliveryChannel(
 
         await realtimePublisher.PublishAsync(
             payload.OwnerUserId,
-            new NotificationSseEvent(
-                EventName: "notification-created",
-                Data: payloadJson,
-                EventId: payload.NotificationId.ToString()),
+            new RealtimeEvent(
+                Type: NotificationCreatedEventType,
+                PayloadJson: payloadJson,
+                EventId: payload.NotificationId.ToString(),
+                OccurredAtUtc: payload.OccurredAtUtc),
             cancellationToken);
 
         logger.LogDebug(
-            "Owner notification published to SSE connections. NotificationId: {NotificationId}, OwnerUserId: {OwnerUserId}",
+            "Owner notification published as realtime event. NotificationId: {NotificationId}, OwnerUserId: {OwnerUserId}",
             payload.NotificationId,
             payload.OwnerUserId);
     }
 
     private sealed record OwnerNotificationCreatedPayload(
         Guid NotificationId,
-        Guid OwnerUserId);
+        Guid OwnerUserId,
+        DateTime? OccurredAtUtc);
 }
