@@ -144,6 +144,15 @@ public static class FeatureServiceRegistration
         services.AddScoped<DeleteGalleryExportHandler>();
         services.AddScoped<CancelPendingGalleryExportHandler>();
         services.AddScoped<BuildGalleryExportJob>();
+        services.AddScoped<CleanupExpiredGalleryExportsJob>();
+        services.AddOptions<GalleryExportCleanupOptions>()
+            .BindConfiguration(GalleryExportCleanupOptions.SectionName)
+            .Validate(x => x.IntervalMinutes is > 0 and <= 1440,
+                "GalleryExportCleanup:IntervalMinutes must be between 1 and 1440.")
+            .Validate(x => x.BatchSize is > 0 and <= 1000,
+                "GalleryExportCleanup:BatchSize must be between 1 and 1000.")
+            .ValidateOnStart();
+        services.AddHostedService<GalleryExportCleanupWorker>();
 
         services.Configure<OutboxProcessingOptions>(_ => { });
         services.AddScoped<OutboxProcessor>();
