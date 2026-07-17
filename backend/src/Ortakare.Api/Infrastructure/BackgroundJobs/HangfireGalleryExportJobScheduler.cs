@@ -8,5 +8,5 @@ public sealed class HangfireGalleryExportJobScheduler(
 {
     public string Enqueue(Guid exportId) =>
         backgroundJobClient.Enqueue<BuildGalleryExportJob>(
-            job => job.ExecuteAsync(exportId, CancellationToken.None));
+            job => job.ExecuteAsync(exportId, null, CancellationToken.None));
 }
