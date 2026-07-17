@@ -7,6 +7,7 @@ using Ortakare.Api.Features.Notifications.GetMyNotifications;
 using Ortakare.Api.Features.Notifications.GetUnreadNotificationCount;
 using Ortakare.Api.Features.Notifications.MarkAllNotificationsAsRead;
 using Ortakare.Api.Features.Notifications.MarkNotificationAsRead;
+using Ortakare.Api.Features.Notifications.Streaming;
 
 namespace Ortakare.Api.Features.Notifications;
 
@@ -19,7 +20,8 @@ public sealed class NotificationsController(
     MarkNotificationAsReadHandler markNotificationAsReadHandler,
     MarkAllNotificationsAsReadHandler markAllNotificationsAsReadHandler,
     DeleteNotificationHandler deleteNotificationHandler,
-    CreateNotificationStreamTokenHandler createNotificationStreamTokenHandler) : ControllerBase
+    CreateNotificationStreamTokenHandler createNotificationStreamTokenHandler,
+    StreamNotificationsHandler streamNotificationsHandler) : ControllerBase
 {
     [HttpGet]
     [ProducesResponseType(typeof(ApiResult<GetMyNotificationsResponse>), StatusCodes.Status200OK)]
@@ -76,6 +78,18 @@ public sealed class NotificationsController(
     {
         var result = createNotificationStreamTokenHandler.Handle();
         return StatusCode(result.StatusCode, result);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("stream")]
+    [Produces("text/event-stream")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status401Unauthorized)]
+    public Task Stream(
+        [FromQuery] string? token,
+        CancellationToken cancellationToken)
+    {
+        return streamNotificationsHandler.HandleAsync(HttpContext, token, cancellationToken);
     }
 
     [HttpDelete("{notificationId:guid}")]
