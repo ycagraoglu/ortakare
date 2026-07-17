@@ -1,22 +1,10 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
+using Ortakare.Api.Infrastructure.Realtime;
 
 namespace Ortakare.Api.Features.Notifications.Streaming;
 
-public sealed record NotificationSseEvent(
-    string EventName,
-    string Data,
-    string? EventId = null);
-
-public interface INotificationRealtimePublisher
-{
-    ValueTask PublishAsync(
-        Guid ownerUserId,
-        NotificationSseEvent notificationEvent,
-        CancellationToken cancellationToken = default);
-}
-
-public interface INotificationSseConnectionManager : INotificationRealtimePublisher
+public interface INotificationSseConnectionManager : IRealtimePublisher
 {
     NotificationSseSubscription Subscribe(Guid ownerUserId);
     int GetConnectionCount(Guid ownerUserId);
@@ -25,12 +13,12 @@ public interface INotificationSseConnectionManager : INotificationRealtimePublis
 public sealed class NotificationSseConnectionManager : INotificationSseConnectionManager
 {
     private const int ChannelCapacity = 100;
-    private readonly ConcurrentDictionary<Guid, ConcurrentDictionary<Guid, Channel<NotificationSseEvent>>> _connections = new();
+    private readonly ConcurrentDictionary<Guid, ConcurrentDictionary<Guid, Channel<RealtimeEvent>>> _connections = new();
 
     public NotificationSseSubscription Subscribe(Guid ownerUserId)
     {
         var connectionId = Guid.NewGuid();
-        var channel = Channel.CreateBounded<NotificationSseEvent>(new BoundedChannelOptions(ChannelCapacity)
+        var channel = Channel.CreateBounded<RealtimeEvent>(new BoundedChannelOptions(ChannelCapacity)
         {
             SingleReader = true,
             SingleWriter = false,
@@ -40,7 +28,7 @@ public sealed class NotificationSseConnectionManager : INotificationSseConnectio
 
         var ownerConnections = _connections.GetOrAdd(
             ownerUserId,
-            static _ => new ConcurrentDictionary<Guid, Channel<NotificationSseEvent>>());
+            static _ => new ConcurrentDictionary<Guid, Channel<RealtimeEvent>>());
 
         ownerConnections[connectionId] = channel;
 
@@ -53,7 +41,7 @@ public sealed class NotificationSseConnectionManager : INotificationSseConnectio
 
     public ValueTask PublishAsync(
         Guid ownerUserId,
-        NotificationSseEvent notificationEvent,
+        RealtimeEvent realtimeEvent,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -65,7 +53,7 @@ public sealed class NotificationSseConnectionManager : INotificationSseConnectio
 
         foreach (var connection in ownerConnections.Values)
         {
-            connection.Writer.TryWrite(notificationEvent);
+            connection.Writer.TryWrite(realtimeEvent);
         }
 
         return ValueTask.CompletedTask;
@@ -93,7 +81,7 @@ public sealed class NotificationSseConnectionManager : INotificationSseConnectio
         if (ownerConnections.IsEmpty)
         {
             _connections.TryRemove(
-                new KeyValuePair<Guid, ConcurrentDictionary<Guid, Channel<NotificationSseEvent>>>(
+                new KeyValuePair<Guid, ConcurrentDictionary<Guid, Channel<RealtimeEvent>>>(
                     ownerUserId,
                     ownerConnections));
         }
@@ -108,7 +96,7 @@ public sealed class NotificationSseSubscription : IAsyncDisposable
     internal NotificationSseSubscription(
         Guid ownerUserId,
         Guid connectionId,
-        ChannelReader<NotificationSseEvent> reader,
+        ChannelReader<RealtimeEvent> reader,
         Action<Guid, Guid> removeConnection)
     {
         OwnerUserId = ownerUserId;
@@ -119,7 +107,7 @@ public sealed class NotificationSseSubscription : IAsyncDisposable
 
     public Guid OwnerUserId { get; }
     public Guid ConnectionId { get; }
-    public ChannelReader<NotificationSseEvent> Reader { get; }
+    public ChannelReader<RealtimeEvent> Reader { get; }
 
     public ValueTask DisposeAsync()
     {
