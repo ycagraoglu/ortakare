@@ -71,6 +71,7 @@ public sealed class SseOutboxDeliveryChannelTests
     private static SseOutboxDeliveryChannel CreateChannel(IRealtimePublisher publisher)
     {
         return new SseOutboxDeliveryChannel(
+            new RealtimeEventFactory(),
             publisher,
             NullLogger<SseOutboxDeliveryChannel>.Instance);
     }
