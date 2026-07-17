@@ -144,6 +144,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<OutboxProcessor>();
         services.AddScoped<OutboxDeliveryDispatcher>();
         services.AddSingleton<IOutboxDeliveryChannel, LoggingOutboxDeliveryChannel>();
+        services.AddSingleton<IOutboxDeliveryChannel, SseOutboxDeliveryChannel>();
         services.AddHostedService<OutboxProcessingWorker>();
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
