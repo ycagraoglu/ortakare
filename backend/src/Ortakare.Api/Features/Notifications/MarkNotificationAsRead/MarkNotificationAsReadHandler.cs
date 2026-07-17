@@ -8,7 +8,8 @@ namespace Ortakare.Api.Features.Notifications.MarkNotificationAsRead;
 public sealed class MarkNotificationAsReadHandler(
     OrtakareDbContext dbContext,
     ICurrentUser currentUser,
-    TimeProvider timeProvider)
+    TimeProvider timeProvider,
+    OwnerUnreadCountOutboxWriter unreadCountOutboxWriter)
 {
     public async Task<ApiResult<MarkNotificationAsReadResponse>> HandleAsync(
         Guid notificationId,
@@ -29,6 +30,7 @@ public sealed class MarkNotificationAsReadHandler(
         if (!notification.ReadAtUtc.HasValue)
         {
             notification.ReadAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+            unreadCountOutboxWriter.Add(currentUser.UserId);
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
