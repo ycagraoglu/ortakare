@@ -19,8 +19,10 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.Property(x => x.ActionUrl).HasMaxLength(300);
         builder.Property(x => x.DataJson).HasColumnType("jsonb");
 
-        builder.HasIndex(x => new { x.OwnerUserId, x.ReadAtUtc, x.CreatedAtUtc });
-        builder.HasIndex(x => new { x.EventId, x.CreatedAtUtc });
+        builder.HasQueryFilter(x => x.DeletedAtUtc == null);
+
+        builder.HasIndex(x => new { x.OwnerUserId, x.DeletedAtUtc, x.ReadAtUtc, x.CreatedAtUtc });
+        builder.HasIndex(x => new { x.EventId, x.DeletedAtUtc, x.CreatedAtUtc });
 
         builder.HasOne<User>()
             .WithMany()
