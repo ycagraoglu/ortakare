@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Ortakare.Api.Common;
 using Ortakare.Api.Infrastructure.Authentication;
 using Ortakare.Api.Infrastructure.Persistence;
@@ -28,6 +29,19 @@ public sealed class CreateGalleryExportHandler(
                 StatusCodes.Status404NotFound);
         }
 
+        var hasActiveExport = await dbContext.GalleryExports
+            .AsNoTracking()
+            .AnyAsync(
+                x => x.EventId == eventId &&
+                     (x.Status == GalleryExportStatus.Pending ||
+                      x.Status == GalleryExportStatus.Processing),
+                cancellationToken);
+
+        if (hasActiveExport)
+        {
+            return ActiveExportConflict();
+        }
+
         var photoCount = await dbContext.EventGuestPhotos
             .AsNoTracking()
             .CountAsync(x => x.EventId == eventId, cancellationToken);
@@ -50,7 +64,16 @@ public sealed class CreateGalleryExportHandler(
         };
 
         dbContext.GalleryExports.Add(galleryExport);
-        await dbContext.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (IsActiveExportUniqueViolation(exception))
+        {
+            dbContext.Entry(galleryExport).State = EntityState.Detached;
+            return ActiveExportConflict();
+        }
 
         jobScheduler.Enqueue(galleryExport.Id);
 
@@ -63,4 +86,16 @@ public sealed class CreateGalleryExportHandler(
             "Galeri dışa aktarma talebi oluşturuldu.",
             StatusCodes.Status202Accepted);
     }
+
+    private static ApiResult<CreateGalleryExportResponse> ActiveExportConflict() =>
+        ApiResult<CreateGalleryExportResponse>.Failure(
+            "Bu etkinlik için devam eden bir dışa aktarma zaten bulunuyor.",
+            StatusCodes.Status409Conflict);
+
+    private static bool IsActiveExportUniqueViolation(DbUpdateException exception) =>
+        exception.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: GalleryExportConfiguration.ActiveExportUniqueIndexName
+        };
 }
