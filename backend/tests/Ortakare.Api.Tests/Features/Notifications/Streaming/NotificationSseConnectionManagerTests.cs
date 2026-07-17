@@ -1,4 +1,5 @@
 using Ortakare.Api.Features.Notifications.Streaming;
+using Ortakare.Api.Infrastructure.Realtime;
 
 namespace Ortakare.Api.Tests.Features.Notifications.Streaming;
 
@@ -11,14 +12,14 @@ public sealed class NotificationSseConnectionManagerTests
         var ownerUserId = Guid.NewGuid();
         await using var first = manager.Subscribe(ownerUserId);
         await using var second = manager.Subscribe(ownerUserId);
-        var notificationEvent = new NotificationSseEvent("notification-created", "{\"id\":\"1\"}");
+        var realtimeEvent = new RealtimeEvent("NotificationCreated", "{\"id\":\"1\"}");
 
-        await manager.PublishAsync(ownerUserId, notificationEvent);
+        await manager.PublishAsync(ownerUserId, realtimeEvent);
 
         Assert.True(first.Reader.TryRead(out var firstEvent));
         Assert.True(second.Reader.TryRead(out var secondEvent));
-        Assert.Equal(notificationEvent, firstEvent);
-        Assert.Equal(notificationEvent, secondEvent);
+        Assert.Equal(realtimeEvent, firstEvent);
+        Assert.Equal(realtimeEvent, secondEvent);
         Assert.Equal(2, manager.GetConnectionCount(ownerUserId));
     }
 
@@ -32,7 +33,7 @@ public sealed class NotificationSseConnectionManagerTests
 
         await manager.PublishAsync(
             differentOwnerUserId,
-            new NotificationSseEvent("notification-created", "{}"));
+            new RealtimeEvent("NotificationCreated", "{}"));
 
         Assert.False(subscription.Reader.TryRead(out _));
     }
@@ -49,11 +50,11 @@ public sealed class NotificationSseConnectionManagerTests
 
         Assert.Equal(1, manager.GetConnectionCount(ownerUserId));
 
-        var notificationEvent = new NotificationSseEvent("heartbeat", "{}");
-        await manager.PublishAsync(ownerUserId, notificationEvent);
+        var realtimeEvent = new RealtimeEvent("Heartbeat", "{}");
+        await manager.PublishAsync(ownerUserId, realtimeEvent);
 
         Assert.True(second.Reader.TryRead(out var deliveredEvent));
-        Assert.Equal(notificationEvent, deliveredEvent);
+        Assert.Equal(realtimeEvent, deliveredEvent);
         Assert.False(first.Reader.TryRead(out _));
     }
 
