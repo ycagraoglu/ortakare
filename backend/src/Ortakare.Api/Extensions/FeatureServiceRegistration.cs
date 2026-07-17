@@ -26,6 +26,7 @@ using Ortakare.Api.Features.GalleryExports.CreateGalleryExport;
 using Ortakare.Api.Features.GalleryExports.DeleteGalleryExport;
 using Ortakare.Api.Features.GalleryExports.GetEventExports;
 using Ortakare.Api.Features.GalleryExports.GetGalleryExport;
+using Ortakare.Api.Features.GalleryExports.GetGalleryExportDownloadUrl;
 using Ortakare.Api.Features.GalleryExports.RetryFailedGalleryExport;
 using Ortakare.Api.Features.Notifications;
 using Ortakare.Api.Features.Notifications.CreateNotificationStreamToken;
@@ -137,6 +138,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<DeleteGuestPhotoHandler>();
         services.AddScoped<CreateGalleryExportHandler>();
         services.AddScoped<GetGalleryExportHandler>();
+        services.AddScoped<GetGalleryExportDownloadUrlHandler>();
         services.AddScoped<GetEventExportsHandler>();
         services.AddScoped<RetryFailedGalleryExportHandler>();
         services.AddScoped<DeleteGalleryExportHandler>();
