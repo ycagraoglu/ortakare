@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Ortakare.Api.Common;
+using Ortakare.Api.Infrastructure.Realtime;
 
 namespace Ortakare.Api.Features.Notifications.Streaming;
 
@@ -36,13 +37,14 @@ public sealed class StreamNotificationsHandler(
 
         await WriteEventAsync(
             httpContext.Response,
-            new NotificationSseEvent(
-                "connected",
-                JsonSerializer.Serialize(new
+            new RealtimeEvent(
+                Type: "Connected",
+                PayloadJson: JsonSerializer.Serialize(new
                 {
                     connectionId = subscription.ConnectionId,
                     connectedAtUtc = timeProvider.GetUtcNow().UtcDateTime
-                })),
+                }),
+                OccurredAtUtc: timeProvider.GetUtcNow().UtcDateTime),
             cancellationToken);
 
         var heartbeatInterval = TimeSpan.FromSeconds(options.Value.HeartbeatSeconds);
@@ -65,21 +67,20 @@ public sealed class StreamNotificationsHandler(
                         break;
                     }
 
-                    while (subscription.Reader.TryRead(out var notificationEvent))
+                    while (subscription.Reader.TryRead(out var realtimeEvent))
                     {
-                        await WriteEventAsync(httpContext.Response, notificationEvent, cancellationToken);
+                        await WriteEventAsync(httpContext.Response, realtimeEvent, cancellationToken);
                     }
                 }
                 else
                 {
+                    var sentAtUtc = timeProvider.GetUtcNow().UtcDateTime;
                     await WriteEventAsync(
                         httpContext.Response,
-                        new NotificationSseEvent(
-                            "heartbeat",
-                            JsonSerializer.Serialize(new
-                            {
-                                sentAtUtc = timeProvider.GetUtcNow().UtcDateTime
-                            })),
+                        new RealtimeEvent(
+                            Type: "Heartbeat",
+                            PayloadJson: JsonSerializer.Serialize(new { sentAtUtc }),
+                            OccurredAtUtc: sentAtUtc),
                         cancellationToken);
                 }
             }
@@ -92,17 +93,17 @@ public sealed class StreamNotificationsHandler(
 
     private static async Task WriteEventAsync(
         HttpResponse response,
-        NotificationSseEvent notificationEvent,
+        RealtimeEvent realtimeEvent,
         CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(notificationEvent.EventId))
+        if (!string.IsNullOrWhiteSpace(realtimeEvent.EventId))
         {
-            await response.WriteAsync($"id: {SanitizeLine(notificationEvent.EventId)}\n", cancellationToken);
+            await response.WriteAsync($"id: {SanitizeLine(realtimeEvent.EventId)}\n", cancellationToken);
         }
 
-        await response.WriteAsync($"event: {SanitizeLine(notificationEvent.EventName)}\n", cancellationToken);
+        await response.WriteAsync($"event: {SanitizeLine(realtimeEvent.Type)}\n", cancellationToken);
 
-        foreach (var line in notificationEvent.Data.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
+        foreach (var line in realtimeEvent.PayloadJson.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n'))
         {
             await response.WriteAsync($"data: {line}\n", cancellationToken);
         }
