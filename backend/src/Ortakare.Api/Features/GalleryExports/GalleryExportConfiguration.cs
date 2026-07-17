@@ -6,6 +6,8 @@ namespace Ortakare.Api.Features.GalleryExports;
 
 public sealed class GalleryExportConfiguration : IEntityTypeConfiguration<GalleryExport>
 {
+    public const string ActiveExportUniqueIndexName = "UX_GalleryExports_EventId_Active";
+
     public void Configure(EntityTypeBuilder<GalleryExport> builder)
     {
         builder.ToTable("GalleryExports");
@@ -15,6 +17,11 @@ public sealed class GalleryExportConfiguration : IEntityTypeConfiguration<Galler
         builder.Property(x => x.StorageKey).HasMaxLength(500);
 
         builder.HasIndex(x => new { x.EventId, x.CreatedAtUtc });
+
+        builder.HasIndex(x => x.EventId)
+            .HasDatabaseName(ActiveExportUniqueIndexName)
+            .IsUnique()
+            .HasFilter("\"Status\" IN ('Pending', 'Processing')");
 
         builder.HasOne<Event>()
             .WithMany()
