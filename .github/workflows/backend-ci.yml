@@ -29,6 +29,7 @@ jobs:
     defaults:
       run:
         working-directory: backend
+        shell: bash
 
     steps:
       - name: Checkout repository
@@ -39,25 +40,38 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Show .NET environment
+        run: |
+          mkdir -p "${{ github.workspace }}/BackendCiLogs"
+          dotnet --info | tee "${{ github.workspace }}/BackendCiLogs/dotnet-info.log"
+
       - name: Restore
-        run: dotnet restore Ortakare.slnx
+        run: |
+          set -o pipefail
+          dotnet restore Ortakare.slnx 2>&1 | tee "${{ github.workspace }}/BackendCiLogs/restore.log"
 
       - name: Build
-        run: dotnet build Ortakare.slnx --configuration Release --no-restore --warnaserror
+        run: |
+          set -o pipefail
+          dotnet build Ortakare.slnx --configuration Release --no-restore --warnaserror 2>&1 | tee "${{ github.workspace }}/BackendCiLogs/build.log"
 
       - name: Test
-        run: >-
-          dotnet test Ortakare.slnx
-          --configuration Release
-          --no-build
-          --logger "trx;LogFileName=test-results.trx"
-          --results-directory "${{ github.workspace }}/TestResults"
+        run: |
+          set -o pipefail
+          dotnet test Ortakare.slnx \
+            --configuration Release \
+            --no-build \
+            --logger "trx;LogFileName=test-results.trx" \
+            --results-directory "${{ github.workspace }}/TestResults" \
+            2>&1 | tee "${{ github.workspace }}/BackendCiLogs/test.log"
 
-      - name: Upload test results
+      - name: Upload CI diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: backend-test-results
-          path: TestResults
-          if-no-files-found: ignore
+          name: backend-ci-diagnostics
+          path: |
+            BackendCiLogs
+            TestResults
+          if-no-files-found: warn
           retention-days: 7
