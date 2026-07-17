@@ -7,7 +7,8 @@ namespace Ortakare.Api.Features.GalleryExports.GetGalleryExport;
 
 public sealed class GetGalleryExportHandler(
     OrtakareDbContext dbContext,
-    ICurrentUser currentUser)
+    ICurrentUser currentUser,
+    TimeProvider timeProvider)
 {
     public async Task<ApiResult<GetGalleryExportResponse>> HandleAsync(
         Guid eventId,
@@ -18,13 +19,16 @@ public sealed class GetGalleryExportHandler(
             .AsNoTracking()
             .Where(x => x.Id == exportId && x.EventId == eventId)
             .Where(x => dbContext.Events.Any(e => e.Id == x.EventId && e.OwnerUserId == currentUser.UserId))
-            .Select(x => new GetGalleryExportResponse(
+            .Select(x => new
+            {
                 x.Id,
                 x.Status,
                 x.PhotoCount,
                 x.CreatedAtUtc,
                 x.CompletedAtUtc,
-                x.FailedAtUtc))
+                x.ExpiresAtUtc,
+                x.FailedAtUtc
+            })
             .SingleOrDefaultAsync(cancellationToken);
 
         if (galleryExport is null)
@@ -34,6 +38,20 @@ public sealed class GetGalleryExportHandler(
                 StatusCodes.Status404NotFound);
         }
 
-        return ApiResult<GetGalleryExportResponse>.Success(galleryExport);
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var isExpired = galleryExport.Status == GalleryExportStatus.Completed &&
+                        galleryExport.ExpiresAtUtc.HasValue &&
+                        galleryExport.ExpiresAtUtc.Value <= now;
+
+        return ApiResult<GetGalleryExportResponse>.Success(
+            new GetGalleryExportResponse(
+                galleryExport.Id,
+                galleryExport.Status,
+                galleryExport.PhotoCount,
+                galleryExport.CreatedAtUtc,
+                galleryExport.CompletedAtUtc,
+                galleryExport.ExpiresAtUtc,
+                isExpired,
+                galleryExport.FailedAtUtc));
     }
 }
