@@ -83,6 +83,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<EventAuditWriter>();
         services.AddScoped<GetEventAuditLogsHandler>();
         services.AddScoped<NotificationOutboxWriter>();
+        services.AddScoped<OwnerUnreadCountOutboxWriter>();
         services.AddScoped<GetUnreadNotificationCountHandler>();
         services.AddScoped<GetMyNotificationsHandler>();
         services.AddScoped<MarkNotificationAsReadHandler>();
@@ -147,6 +148,7 @@ public static class FeatureServiceRegistration
         services.AddScoped<OutboxDeliveryDispatcher>();
         services.AddSingleton<IOutboxDeliveryChannel, LoggingOutboxDeliveryChannel>();
         services.AddSingleton<IOutboxDeliveryChannel, SseOutboxDeliveryChannel>();
+        services.AddScoped<IOutboxDeliveryChannel, UnreadCountOutboxDeliveryChannel>();
         services.AddHostedService<OutboxProcessingWorker>();
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
