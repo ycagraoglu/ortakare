@@ -9,6 +9,7 @@ public sealed class GalleryExport
     public string? StorageKey { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? CompletedAtUtc { get; set; }
+    public DateTime? ExpiresAtUtc { get; set; }
     public DateTime? FailedAtUtc { get; set; }
     public DateTime? CancelledAtUtc { get; set; }
 }
