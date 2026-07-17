@@ -46,18 +46,20 @@ public sealed class StreamNotificationsHandler(
             cancellationToken);
 
         var heartbeatInterval = TimeSpan.FromSeconds(options.Value.HeartbeatSeconds);
-        using var heartbeatTimer = new PeriodicTimer(heartbeatInterval, timeProvider);
 
         try
         {
             while (!cancellationToken.IsCancellationRequested)
             {
+                using var heartbeatCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 var readTask = subscription.Reader.WaitToReadAsync(cancellationToken).AsTask();
-                var heartbeatTask = heartbeatTimer.WaitForNextTickAsync(cancellationToken).AsTask();
+                var heartbeatTask = Task.Delay(heartbeatInterval, timeProvider, heartbeatCancellation.Token);
                 var completedTask = await Task.WhenAny(readTask, heartbeatTask);
 
                 if (completedTask == readTask)
                 {
+                    await heartbeatCancellation.CancelAsync();
+
                     if (!await readTask)
                     {
                         break;
@@ -70,11 +72,6 @@ public sealed class StreamNotificationsHandler(
                 }
                 else
                 {
-                    if (!await heartbeatTask)
-                    {
-                        break;
-                    }
-
                     await WriteEventAsync(
                         httpContext.Response,
                         new NotificationSseEvent(
