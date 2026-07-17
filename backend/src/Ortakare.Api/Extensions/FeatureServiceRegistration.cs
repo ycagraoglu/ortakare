@@ -88,7 +88,13 @@ public static class FeatureServiceRegistration
         services.AddScoped<MarkAllNotificationsAsReadHandler>();
         services.AddScoped<DeleteNotificationHandler>();
         services.AddScoped<CreateNotificationStreamTokenHandler>();
+        services.AddScoped<StreamNotificationsHandler>();
         services.AddSingleton<INotificationStreamTokenService, NotificationStreamTokenService>();
+        services.AddSingleton<NotificationSseConnectionManager>();
+        services.AddSingleton<INotificationSseConnectionManager>(serviceProvider =>
+            serviceProvider.GetRequiredService<NotificationSseConnectionManager>());
+        services.AddSingleton<INotificationRealtimePublisher>(serviceProvider =>
+            serviceProvider.GetRequiredService<NotificationSseConnectionManager>());
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IDomainEventHandler<EventClosedDomainEvent>, EventClosedAuditHandler>();
         services.AddScoped<IDomainEventHandler<EventReopenedDomainEvent>, EventReopenedAuditHandler>();
