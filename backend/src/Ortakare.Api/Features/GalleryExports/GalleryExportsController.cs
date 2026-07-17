@@ -6,6 +6,7 @@ using Ortakare.Api.Features.GalleryExports.CreateGalleryExport;
 using Ortakare.Api.Features.GalleryExports.DeleteGalleryExport;
 using Ortakare.Api.Features.GalleryExports.GetEventExports;
 using Ortakare.Api.Features.GalleryExports.GetGalleryExport;
+using Ortakare.Api.Features.GalleryExports.GetGalleryExportDownloadUrl;
 using Ortakare.Api.Features.GalleryExports.RetryFailedGalleryExport;
 
 namespace Ortakare.Api.Features.GalleryExports;
@@ -16,6 +17,7 @@ namespace Ortakare.Api.Features.GalleryExports;
 public sealed class GalleryExportsController(
     CreateGalleryExportHandler createGalleryExportHandler,
     GetGalleryExportHandler getGalleryExportHandler,
+    GetGalleryExportDownloadUrlHandler getGalleryExportDownloadUrlHandler,
     GetEventExportsHandler getEventExportsHandler,
     RetryFailedGalleryExportHandler retryFailedGalleryExportHandler,
     DeleteGalleryExportHandler deleteGalleryExportHandler,
@@ -56,6 +58,20 @@ public sealed class GalleryExportsController(
         CancellationToken cancellationToken)
     {
         var result = await getGalleryExportHandler.HandleAsync(eventId, exportId, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("{exportId:guid}/download-url")]
+    [ProducesResponseType(typeof(ApiResult<GetGalleryExportDownloadUrlResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResult), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetDownloadUrl(
+        Guid eventId,
+        Guid exportId,
+        CancellationToken cancellationToken)
+    {
+        var result = await getGalleryExportDownloadUrlHandler.HandleAsync(eventId, exportId, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 
