@@ -13,6 +13,6 @@ public sealed record GetEventExportsItem(
     int PhotoCount,
     DateTime CreatedAtUtc,
     DateTime? CompletedAtUtc,
-    DateTime? FailedAtUtc,
-    string? DownloadUrl,
-    DateTime? DownloadUrlExpiresAtUtc);
+    DateTime? ExpiresAtUtc,
+    bool IsExpired,
+    DateTime? FailedAtUtc);
