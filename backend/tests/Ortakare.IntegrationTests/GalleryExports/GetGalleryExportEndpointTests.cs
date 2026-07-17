@@ -8,6 +8,7 @@ using Ortakare.Api.Features.Auth.Register;
 using Ortakare.Api.Features.Events;
 using Ortakare.Api.Features.GalleryExports;
 using Ortakare.Api.Features.GalleryExports.GetGalleryExport;
+using Ortakare.Api.Features.GalleryExports.GetGalleryExportDownloadUrl;
 using Ortakare.Api.Features.Users;
 using Ortakare.Api.Infrastructure.Persistence;
 
@@ -20,9 +21,8 @@ public sealed class GetGalleryExportEndpointTests : IClassFixture<OrtakareApiFac
     public GetGalleryExportEndpointTests(OrtakareApiFactory factory) => _factory = factory;
 
     [Fact]
-    public async Task Get_returns_signed_download_url_only_for_completed_export(CancellationToken cancellationToken)
+    public async Task Get_returns_export_status_without_download_url(CancellationToken cancellationToken)
     {
-        _factory.ObjectStorage.Reset();
         using var client = _factory.CreateClient();
         var ownerId = await AuthenticateAsync(client, cancellationToken);
         var seeded = await SeedExportAsync(ownerId, GalleryExportStatus.Completed, cancellationToken);
@@ -33,29 +33,63 @@ public sealed class GetGalleryExportEndpointTests : IClassFixture<OrtakareApiFac
         var result = await response.Content.ReadFromJsonAsync<ApiResult<GetGalleryExportResponse>>(cancellationToken);
         Assert.NotNull(result?.Data);
         Assert.Equal(GalleryExportStatus.Completed, result.Data.Status);
-        Assert.NotNull(result.Data.DownloadUrl);
-        Assert.NotNull(result.Data.DownloadUrlExpiresAtUtc);
-        Assert.Contains(Uri.EscapeDataString(seeded.StorageKey), result.Data.DownloadUrl);
     }
 
     [Fact]
-    public async Task Get_does_not_return_download_url_for_pending_export(CancellationToken cancellationToken)
+    public async Task Get_download_url_returns_signed_url_for_completed_export(CancellationToken cancellationToken)
+    {
+        _factory.ObjectStorage.Reset();
+        using var client = _factory.CreateClient();
+        var ownerId = await AuthenticateAsync(client, cancellationToken);
+        var seeded = await SeedExportAsync(ownerId, GalleryExportStatus.Completed, cancellationToken);
+
+        var response = await client.GetAsync(
+            $"/api/events/{seeded.EventId}/exports/{seeded.ExportId}/download-url",
+            cancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<ApiResult<GetGalleryExportDownloadUrlResponse>>(cancellationToken);
+        Assert.NotNull(result?.Data);
+        Assert.Equal(seeded.ExportId, result.Data.ExportId);
+        Assert.Contains(Uri.EscapeDataString(seeded.StorageKey), result.Data.DownloadUrl);
+        Assert.True(result.Data.ExpiresAtUtc > DateTime.UtcNow);
+    }
+
+    [Fact]
+    public async Task Get_download_url_returns_conflict_for_pending_export(CancellationToken cancellationToken)
     {
         using var client = _factory.CreateClient();
         var ownerId = await AuthenticateAsync(client, cancellationToken);
         var seeded = await SeedExportAsync(ownerId, GalleryExportStatus.Pending, cancellationToken);
 
-        var response = await client.GetAsync($"/api/events/{seeded.EventId}/exports/{seeded.ExportId}", cancellationToken);
-        var result = await response.Content.ReadFromJsonAsync<ApiResult<GetGalleryExportResponse>>(cancellationToken);
+        var response = await client.GetAsync(
+            $"/api/events/{seeded.EventId}/exports/{seeded.ExportId}/download-url",
+            cancellationToken);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.NotNull(result?.Data);
-        Assert.Null(result.Data.DownloadUrl);
-        Assert.Null(result.Data.DownloadUrlExpiresAtUtc);
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
     [Fact]
-    public async Task Get_returns_not_found_for_another_owner(CancellationToken cancellationToken)
+    public async Task Get_download_url_returns_not_found_when_completed_export_has_no_storage_key(
+        CancellationToken cancellationToken)
+    {
+        using var client = _factory.CreateClient();
+        var ownerId = await AuthenticateAsync(client, cancellationToken);
+        var seeded = await SeedExportAsync(
+            ownerId,
+            GalleryExportStatus.Completed,
+            cancellationToken,
+            includeStorageKey: false);
+
+        var response = await client.GetAsync(
+            $"/api/events/{seeded.EventId}/exports/{seeded.ExportId}/download-url",
+            cancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_download_url_returns_not_found_for_another_owner(CancellationToken cancellationToken)
     {
         using var ownerClient = _factory.CreateClient();
         using var otherClient = _factory.CreateClient();
@@ -63,7 +97,9 @@ public sealed class GetGalleryExportEndpointTests : IClassFixture<OrtakareApiFac
         await AuthenticateAsync(otherClient, cancellationToken);
         var seeded = await SeedExportAsync(ownerId, GalleryExportStatus.Completed, cancellationToken);
 
-        var response = await otherClient.GetAsync($"/api/events/{seeded.EventId}/exports/{seeded.ExportId}", cancellationToken);
+        var response = await otherClient.GetAsync(
+            $"/api/events/{seeded.EventId}/exports/{seeded.ExportId}/download-url",
+            cancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -71,7 +107,8 @@ public sealed class GetGalleryExportEndpointTests : IClassFixture<OrtakareApiFac
     private async Task<SeededExport> SeedExportAsync(
         Guid ownerId,
         GalleryExportStatus status,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool includeStorageKey = true)
     {
         var eventId = Guid.CreateVersion7();
         var exportId = Guid.CreateVersion7();
@@ -96,7 +133,7 @@ public sealed class GetGalleryExportEndpointTests : IClassFixture<OrtakareApiFac
             EventId = eventId,
             Status = status,
             PhotoCount = 3,
-            StorageKey = status == GalleryExportStatus.Completed ? storageKey : null,
+            StorageKey = status == GalleryExportStatus.Completed && includeStorageKey ? storageKey : null,
             CreatedAtUtc = now,
             CompletedAtUtc = status == GalleryExportStatus.Completed ? now : null
         });
