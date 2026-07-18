@@ -40,7 +40,7 @@ public sealed class ImageFileInspector(IOptions<PhotoUploadOptions> options)
             }
 
             var imageInfo = await Image.IdentifyAsync(stream, cancellationToken);
-            if (imageInfo is null || imageInfo.Width <= 0 || imageInfo.Height <= 0)
+            if (imageInfo.Width <= 0 || imageInfo.Height <= 0)
             {
                 return null;
             }
@@ -57,6 +57,14 @@ public sealed class ImageFileInspector(IOptions<PhotoUploadOptions> options)
                     imageInfo.Width,
                     imageInfo.Height,
                     "Görsel çözünürlüğü izin verilen sınırı aşıyor.");
+            }
+
+            stream.Position = originalPosition;
+            await using var decodedImage = await Image.LoadAsync(stream, cancellationToken);
+
+            if (decodedImage.Width != imageInfo.Width || decodedImage.Height != imageInfo.Height)
+            {
+                return null;
             }
 
             return new ImageFileInfo(
