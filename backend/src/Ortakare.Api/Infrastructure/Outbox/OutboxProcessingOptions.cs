@@ -10,4 +10,5 @@ public sealed class OutboxProcessingOptions
     public int MaxRetryCount { get; init; } = 8;
     public int InitialRetryDelaySeconds { get; init; } = 30;
     public int MaxRetryDelaySeconds { get; init; } = 3600;
+    public int LockTimeoutSeconds { get; init; } = 300;
 }
