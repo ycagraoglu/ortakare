@@ -10,4 +10,6 @@ public sealed class OutboxMessage
     public int RetryCount { get; set; }
     public DateTime? NextAttemptAtUtc { get; set; }
     public string? LastError { get; set; }
+    public Guid? LockId { get; set; }
+    public DateTime? LockedAtUtc { get; set; }
 }
