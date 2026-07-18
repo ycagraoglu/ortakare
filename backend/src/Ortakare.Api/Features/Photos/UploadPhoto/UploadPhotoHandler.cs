@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Ortakare.Api.Common;
 using Ortakare.Api.Features.Participants;
 using Ortakare.Api.Features.Photos.DomainEvents;
@@ -15,6 +16,7 @@ public sealed class UploadPhotoHandler(
     ImageFileInspector imageFileInspector,
     StorageUploadPolicyService storageUploadPolicyService,
     IObjectStorageService objectStorageService,
+    IOptions<PhotoUploadOptions> photoUploadOptions,
     TimeProvider timeProvider,
     IDomainEventDispatcher domainEventDispatcher)
 {
@@ -36,6 +38,32 @@ public sealed class UploadPhotoHandler(
         {
             return ApiResult<UploadPhotoResponse>.Failure(
                 "Geçerli bir client upload ID gönderilmelidir.",
+                StatusCodes.Status400BadRequest);
+        }
+
+        var file = request.File;
+        if (file is null || file.Length <= 0)
+        {
+            return ApiResult<UploadPhotoResponse>.Failure(
+                "Yüklenecek görsel dosyası zorunludur.",
+                StatusCodes.Status400BadRequest);
+        }
+
+        var uploadOptions = photoUploadOptions.Value;
+        if (file.Length > uploadOptions.MaxFileSizeBytes)
+        {
+            return ApiResult<UploadPhotoResponse>.Failure(
+                "Görsel dosyası izin verilen boyut sınırını aşıyor.",
+                StatusCodes.Status413PayloadTooLarge);
+        }
+
+        var safeOriginalFileName = Path.GetFileName(file.FileName ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(safeOriginalFileName) ||
+            safeOriginalFileName.Length > uploadOptions.MaxOriginalFileNameLength ||
+            safeOriginalFileName.Any(char.IsControl))
+        {
+            return ApiResult<UploadPhotoResponse>.Failure(
+                "Görsel dosya adı geçersiz.",
                 StatusCodes.Status400BadRequest);
         }
 
@@ -96,7 +124,6 @@ public sealed class UploadPhotoHandler(
             return ApiResult<UploadPhotoResponse>.Success(existingPhoto);
         }
 
-        var file = request.File!;
         var uploadDecision = await storageUploadPolicyService.EvaluateAsync(
             participantInfo.OwnerUserId,
             participantInfo.UploadsEnabled,
@@ -118,7 +145,21 @@ public sealed class UploadPhotoHandler(
         if (imageInfo is null)
         {
             return ApiResult<UploadPhotoResponse>.Failure(
-                "Desteklenmeyen veya geçersiz görsel dosyası.",
+                "Dosya içeriği desteklenen ve geçerli bir görsel formatı değil.",
+                StatusCodes.Status415UnsupportedMediaType);
+        }
+
+        if (!string.IsNullOrWhiteSpace(imageInfo.ValidationError))
+        {
+            return ApiResult<UploadPhotoResponse>.Failure(
+                imageInfo.ValidationError,
+                StatusCodes.Status422UnprocessableEntity);
+        }
+
+        if (!IsCompatibleDeclaredContentType(file.ContentType, imageInfo.ContentType))
+        {
+            return ApiResult<UploadPhotoResponse>.Failure(
+                "Dosyanın bildirilen içerik türü ile gerçek görsel formatı uyuşmuyor.",
                 StatusCodes.Status415UnsupportedMediaType);
         }
 
@@ -140,7 +181,7 @@ public sealed class UploadPhotoHandler(
             ParticipantId = participantInfo.ParticipantId,
             ClientUploadId = clientUploadId,
             StorageKey = storageKey,
-            OriginalFileName = Path.GetFileName(file.FileName),
+            OriginalFileName = safeOriginalFileName,
             ContentType = imageInfo.ContentType,
             FileSizeBytes = file.Length,
             CreatedAtUtc = now
@@ -178,5 +219,22 @@ public sealed class UploadPhotoHandler(
                 false),
             "Fotoğraf yüklendi.",
             StatusCodes.Status201Created);
+    }
+
+    private static bool IsCompatibleDeclaredContentType(string? declared, string detected)
+    {
+        if (string.IsNullOrWhiteSpace(declared) ||
+            declared.Equals("application/octet-stream", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (declared.Equals(detected, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return detected == "image/jpeg" &&
+               declared.Equals("image/jpg", StringComparison.OrdinalIgnoreCase);
     }
 }
