@@ -154,6 +154,20 @@ public static class FeatureServiceRegistration
             .ValidateOnStart();
         services.AddHostedService<GalleryExportCleanupWorker>();
 
+        services.AddScoped<CleanupOrphanFilesJob>();
+        services.AddOptions<OrphanFileCleanupOptions>()
+            .BindConfiguration(OrphanFileCleanupOptions.SectionName)
+            .Validate(x => x.IntervalHours is > 0 and <= 168,
+                "OrphanFileCleanup:IntervalHours must be between 1 and 168.")
+            .Validate(x => x.GracePeriodHours is >= 1 and <= 720,
+                "OrphanFileCleanup:GracePeriodHours must be between 1 and 720.")
+            .Validate(x => x.MaxObjectsPerPrefix is > 0 and <= 100000,
+                "OrphanFileCleanup:MaxObjectsPerPrefix must be between 1 and 100000.")
+            .Validate(x => x.MaxDeletesPerRun is > 0 and <= 5000,
+                "OrphanFileCleanup:MaxDeletesPerRun must be between 1 and 5000.")
+            .ValidateOnStart();
+        services.AddHostedService<OrphanFileCleanupWorker>();
+
         services.Configure<OutboxProcessingOptions>(_ => { });
         services.AddScoped<OutboxProcessor>();
         services.AddScoped<OutboxDeliveryDispatcher>();
