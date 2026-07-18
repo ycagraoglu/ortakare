@@ -27,7 +27,8 @@ public sealed class TestObjectStorageService : IObjectStorageService
         _objects[key] = new StoredObject(
             memoryStream.ToArray(),
             contentType,
-            contentLength);
+            contentLength,
+            DateTime.UtcNow);
 
         UploadCount++;
     }
@@ -48,6 +49,24 @@ public sealed class TestObjectStorageService : IObjectStorageService
         return Task.FromResult(stream);
     }
 
+    public Task<IReadOnlyList<ObjectStorageItem>> ListAsync(
+        string prefix,
+        int maxKeys,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<ObjectStorageItem> result = _objects
+            .Where(x => x.Key.StartsWith(prefix, StringComparison.Ordinal))
+            .OrderBy(x => x.Key, StringComparer.Ordinal)
+            .Take(maxKeys)
+            .Select(x => new ObjectStorageItem(
+                x.Key,
+                x.Value.LastModifiedUtc,
+                x.Value.ContentLength))
+            .ToList();
+
+        return Task.FromResult(result);
+    }
+
     public Task DeleteAsync(string key, CancellationToken cancellationToken)
     {
         if (ThrowOnDelete)
@@ -63,6 +82,13 @@ public sealed class TestObjectStorageService : IObjectStorageService
     public string CreateReadUrl(string key, DateTime expiresAtUtc) =>
         $"https://storage.test/{Uri.EscapeDataString(key)}?expires={Uri.EscapeDataString(expiresAtUtc.ToString("O"))}";
 
+    public void Seed(string key, DateTime lastModifiedUtc, byte[]? content = null) =>
+        _objects[key] = new StoredObject(
+            content ?? [1, 2, 3],
+            "application/octet-stream",
+            content?.LongLength ?? 3,
+            lastModifiedUtc);
+
     public void Reset()
     {
         _objects.Clear();
@@ -73,4 +99,8 @@ public sealed class TestObjectStorageService : IObjectStorageService
     }
 }
 
-public sealed record StoredObject(byte[] Content, string ContentType, long ContentLength);
+public sealed record StoredObject(
+    byte[] Content,
+    string ContentType,
+    long ContentLength,
+    DateTime LastModifiedUtc);
