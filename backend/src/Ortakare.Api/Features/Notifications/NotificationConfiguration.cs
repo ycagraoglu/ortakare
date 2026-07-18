@@ -21,8 +21,17 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
 
         builder.HasQueryFilter(x => x.DeletedAtUtc == null);
 
-        builder.HasIndex(x => new { x.OwnerUserId, x.DeletedAtUtc, x.ReadAtUtc, x.CreatedAtUtc });
-        builder.HasIndex(x => new { x.EventId, x.DeletedAtUtc, x.CreatedAtUtc });
+        builder.HasIndex(x => new { x.OwnerUserId, x.CreatedAtUtc, x.Id })
+            .HasDatabaseName("IX_Notifications_OwnerUserId_CreatedAtUtc_Id_Active")
+            .HasFilter("\"DeletedAtUtc\" IS NULL");
+
+        builder.HasIndex(x => x.OwnerUserId)
+            .HasDatabaseName("IX_Notifications_OwnerUserId_Unread")
+            .HasFilter("\"DeletedAtUtc\" IS NULL AND \"ReadAtUtc\" IS NULL");
+
+        builder.HasIndex(x => new { x.EventId, x.CreatedAtUtc, x.Id })
+            .HasDatabaseName("IX_Notifications_EventId_CreatedAtUtc_Id_Active")
+            .HasFilter("\"DeletedAtUtc\" IS NULL");
 
         builder.HasOne<User>()
             .WithMany()
