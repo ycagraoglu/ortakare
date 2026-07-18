@@ -9,22 +9,25 @@ namespace Ortakare.Api.Infrastructure.HealthChecks;
 
 public sealed class R2HealthCheck(
     IAmazonS3 amazonS3,
-    IOptions<ObjectStorageOptions> options) : IHealthCheck
+    IOptions<ObjectStorageOptions> storageOptions,
+    IOptions<HealthCheckOptions> healthOptions) : IHealthCheck
 {
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
+        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutSource.CancelAfter(TimeSpan.FromSeconds(healthOptions.Value.DependencyTimeoutSeconds));
 
         try
         {
-            var storageOptions = options.Value;
+            var options = storageOptions.Value;
             await amazonS3.ListObjectsV2Async(new ListObjectsV2Request
             {
-                BucketName = storageOptions.BucketName,
+                BucketName = options.BucketName,
                 MaxKeys = 1
-            }, cancellationToken);
+            }, timeoutSource.Token);
 
             stopwatch.Stop();
             return HealthCheckResult.Healthy(
@@ -32,12 +35,19 @@ public sealed class R2HealthCheck(
                 new Dictionary<string, object>
                 {
                     ["elapsedMilliseconds"] = Math.Round(stopwatch.Elapsed.TotalMilliseconds, 2),
-                    ["bucket"] = storageOptions.BucketName
+                    ["bucket"] = options.BucketName
                 });
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException) when (timeoutSource.IsCancellationRequested)
         {
-            return HealthCheckResult.Unhealthy("Cloudflare R2 sağlık kontrolü zaman aşımına uğradı.");
+            stopwatch.Stop();
+            return HealthCheckResult.Unhealthy(
+                "Cloudflare R2 sağlık kontrolü zaman aşımına uğradı.",
+                data: new Dictionary<string, object>
+                {
+                    ["elapsedMilliseconds"] = Math.Round(stopwatch.Elapsed.TotalMilliseconds, 2),
+                    ["timeoutSeconds"] = healthOptions.Value.DependencyTimeoutSeconds
+                });
         }
         catch (Exception exception)
         {
