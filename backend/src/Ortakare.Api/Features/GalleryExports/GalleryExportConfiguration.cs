@@ -16,8 +16,13 @@ public sealed class GalleryExportConfiguration : IEntityTypeConfiguration<Galler
         builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
         builder.Property(x => x.StorageKey).HasMaxLength(500);
 
-        builder.HasIndex(x => new { x.EventId, x.CreatedAtUtc });
-        builder.HasIndex(x => new { x.Status, x.ExpiresAtUtc });
+        builder.HasIndex(x => new { x.EventId, x.CreatedAtUtc, x.Id })
+            .HasDatabaseName("IX_GalleryExports_EventId_CreatedAtUtc_Id");
+        builder.HasIndex(x => new { x.Status, x.ExpiresAtUtc })
+            .HasDatabaseName("IX_GalleryExports_Status_ExpiresAtUtc");
+        builder.HasIndex(x => x.StorageKey)
+            .HasDatabaseName("IX_GalleryExports_StorageKey")
+            .HasFilter("\"StorageKey\" IS NOT NULL");
 
         builder.HasIndex(x => x.EventId)
             .HasDatabaseName(ActiveExportUniqueIndexName)
