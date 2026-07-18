@@ -60,7 +60,7 @@ public sealed class ImageFileInspector(IOptions<PhotoUploadOptions> options)
             }
 
             stream.Position = originalPosition;
-            await using var decodedImage = await Image.LoadAsync(stream, cancellationToken);
+            using var decodedImage = await Image.LoadAsync(stream, cancellationToken);
 
             if (decodedImage.Width != imageInfo.Width || decodedImage.Height != imageInfo.Height)
             {
