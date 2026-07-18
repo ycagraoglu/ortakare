@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -14,6 +15,8 @@ public sealed class R2HealthCheck(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
+
         try
         {
             var storageOptions = options.Value;
@@ -23,11 +26,29 @@ public sealed class R2HealthCheck(
                 MaxKeys = 1
             }, cancellationToken);
 
-            return HealthCheckResult.Healthy("Cloudflare R2 erişilebilir.");
+            stopwatch.Stop();
+            return HealthCheckResult.Healthy(
+                "Cloudflare R2 bucket erişimi başarılı.",
+                new Dictionary<string, object>
+                {
+                    ["elapsedMilliseconds"] = Math.Round(stopwatch.Elapsed.TotalMilliseconds, 2),
+                    ["bucket"] = storageOptions.BucketName
+                });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return HealthCheckResult.Unhealthy("Cloudflare R2 sağlık kontrolü zaman aşımına uğradı.");
         }
         catch (Exception exception)
         {
-            return HealthCheckResult.Unhealthy("Cloudflare R2 erişilemiyor.", exception);
+            stopwatch.Stop();
+            return HealthCheckResult.Unhealthy(
+                "Cloudflare R2 erişilemiyor.",
+                exception,
+                new Dictionary<string, object>
+                {
+                    ["elapsedMilliseconds"] = Math.Round(stopwatch.Elapsed.TotalMilliseconds, 2)
+                });
         }
     }
 }
