@@ -1,5 +1,7 @@
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Ortakare.Api.Infrastructure.Observability;
 using Ortakare.Api.Infrastructure.Persistence;
 
 namespace Ortakare.Api.Infrastructure.Outbox;
@@ -9,17 +11,26 @@ public sealed class OutboxProcessor(
     OutboxDeliveryDispatcher deliveryDispatcher,
     IOptions<OutboxProcessingOptions> options,
     TimeProvider timeProvider,
+    OrtakareTelemetry telemetry,
     ILogger<OutboxProcessor> logger)
 {
     private readonly OutboxProcessingOptions _options = options.Value;
 
     public async Task<int> ProcessBatchAsync(CancellationToken cancellationToken)
     {
+        using var activity = telemetry.ActivitySource.StartActivity(
+            "outbox.process_batch",
+            ActivityKind.Internal);
+        var stopwatch = Stopwatch.StartNew();
+
         var lockId = Guid.CreateVersion7();
         var claimedIds = await ClaimBatchAsync(lockId, cancellationToken);
+        activity?.SetTag("outbox.claimed_count", claimedIds.Count);
 
         if (claimedIds.Count == 0)
         {
+            telemetry.OutboxDurationMilliseconds.Record(stopwatch.Elapsed.TotalMilliseconds,
+                new KeyValuePair<string, object?>("outcome", "empty"));
             return 0;
         }
 
@@ -28,6 +39,8 @@ public sealed class OutboxProcessor(
             await ProcessClaimedMessageAsync(messageId, lockId, cancellationToken);
         }
 
+        telemetry.OutboxDurationMilliseconds.Record(stopwatch.Elapsed.TotalMilliseconds,
+            new KeyValuePair<string, object?>("outcome", "completed"));
         return claimedIds.Count;
     }
 
@@ -92,12 +105,23 @@ public sealed class OutboxProcessor(
             return;
         }
 
+        using var activity = telemetry.ActivitySource.StartActivity(
+            "outbox.deliver",
+            ActivityKind.Producer);
+        activity?.SetTag("messaging.message.id", message.Id);
+        activity?.SetTag("messaging.message.type", message.Type);
+        activity?.SetTag("outbox.retry_count", message.RetryCount);
+
         try
         {
             await deliveryDispatcher.DispatchAsync(message, cancellationToken);
             message.ProcessedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
             message.NextAttemptAtUtc = null;
             message.LastError = null;
+
+            telemetry.OutboxProcessed.Add(1,
+                new KeyValuePair<string, object?>("message_type", message.Type));
+            activity?.SetStatus(ActivityStatusCode.Ok);
         }
         catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
         {
@@ -107,6 +131,10 @@ public sealed class OutboxProcessor(
                 : exception.Message[..1000];
             message.NextAttemptAtUtc = timeProvider.GetUtcNow().UtcDateTime
                 .AddSeconds(CalculateRetryDelaySeconds(message.RetryCount));
+
+            telemetry.OutboxFailed.Add(1,
+                new KeyValuePair<string, object?>("message_type", message.Type));
+            activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
 
             logger.LogWarning(
                 exception,
