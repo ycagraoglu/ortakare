@@ -23,7 +23,8 @@ public sealed class EventConfiguration : IEntityTypeConfiguration<Event>
         builder.HasIndex(x => x.GalleryToken)
             .IsUnique();
 
-        builder.HasIndex(x => new { x.OwnerUserId, x.EventDateUtc });
+        builder.HasIndex(x => new { x.OwnerUserId, x.EventDateUtc, x.CreatedAtUtc, x.Id })
+            .HasDatabaseName("IX_Events_OwnerUserId_EventDateUtc_CreatedAtUtc_Id");
 
         builder.HasOne<User>()
             .WithMany()
