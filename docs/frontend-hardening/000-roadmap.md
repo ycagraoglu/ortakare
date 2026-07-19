@@ -13,7 +13,7 @@ Frontend klasöründe yalnızca planlama README'si bulunmaktadır. Bu nedenle se
 1. ✅ **Frontend Foundation** — Vite, React, TypeScript strict mode, klasör yapısı, environment doğrulaması, temel scriptler.
 2. ✅ **API Client Standardı** — merkezi HTTP client, ApiResult normalizasyonu, timeout, cancellation, hata sınıflandırması.
 3. ✅ **Authentication Session** — access/refresh token akışı, tekilleştirilmiş refresh, session restore ve logout politikası.
-4. ⏳ **TanStack Query Standardı** — QueryClient, query-key factory, stale/cache süreleri, invalidation kuralları.
+4. ✅ **TanStack Query Standardı** — QueryClient, query-key factory, stale/cache süreleri, invalidation kuralları.
 5. ⏳ **Routing ve Code Splitting** — route grupları, lazy loading, owner/public yüzey ayrımı, 404/403 ekranları.
 6. ⏳ **Form Standardı** — React Hook Form, Zod, backend validation eşlemesi, dirty-state koruması.
 7. ⏳ **UI State Standardı** — loading, skeleton, empty, error, retry ve disabled-state kuralları.
