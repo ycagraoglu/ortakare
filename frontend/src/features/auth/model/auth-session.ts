@@ -1,4 +1,3 @@
-import { configureApiAuthentication } from "@/shared/api/auth-bridge";
 import { login, logout, refresh } from "@/features/auth/api/auth-api";
 import {
   clearStoredSession,
@@ -13,6 +12,8 @@ import type {
   AuthUser,
   LoginRequest,
 } from "@/features/auth/model/auth-types";
+import { configureApiAuthentication } from "@/shared/api/auth-bridge";
+import { clearServerState } from "@/shared/query/query-client";
 
 let accessToken: string | null = null;
 let refreshPromise: Promise<string | null> | null = null;
@@ -33,10 +34,11 @@ function applyTokens(tokens: AuthTokens): void {
   updateStoredRefreshToken(tokens.refreshToken);
 }
 
-function clearSession(): void {
+async function clearSession(): Promise<void> {
   accessToken = null;
   refreshPromise = null;
   clearStoredSession();
+  await clearServerState();
   emit({ status: "anonymous", user: null });
 }
 
@@ -51,8 +53,8 @@ async function refreshAccessToken(): Promise<string | null> {
       applyTokens(tokens);
       return tokens.accessToken;
     })
-    .catch(() => {
-      clearSession();
+    .catch(async () => {
+      await clearSession();
       return null;
     })
     .finally(() => {
@@ -87,7 +89,7 @@ export const authSession = {
       return;
     }
 
-    clearSession();
+    await clearSession();
   },
 
   async login(request: LoginRequest, persistent: boolean): Promise<void> {
@@ -98,6 +100,7 @@ export const authSession = {
       email: response.email,
     };
 
+    await clearServerState();
     accessToken = response.accessToken;
     saveStoredSession({
       refreshToken: response.refreshToken,
@@ -113,7 +116,7 @@ export const authSession = {
     try {
       if (refreshToken) await logout(refreshToken);
     } finally {
-      clearSession();
+      await clearSession();
     }
   },
 };
