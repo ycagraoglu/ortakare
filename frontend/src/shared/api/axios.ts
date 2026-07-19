@@ -1,9 +1,14 @@
 import axios, {
   AxiosHeaders,
+  type AxiosError,
   type InternalAxiosRequestConfig,
 } from "axios";
 
-import { getApiAccessToken, handleApiUnauthorized } from "@/shared/api/auth-bridge";
+import {
+  getApiAccessToken,
+  handleApiSessionExpired,
+  refreshApiAccessToken,
+} from "@/shared/api/auth-bridge";
 import { createCorrelationId } from "@/shared/api/correlation-id";
 import { normalizeApiError } from "@/shared/api/api-error";
 import { env } from "@/shared/config/env";
@@ -35,12 +40,30 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: unknown) => {
-    const normalizedError = normalizeApiError(error);
+    if (axios.isAxiosError(error)) {
+      const axiosError = error as AxiosError;
+      const config = axiosError.config;
 
-    if (normalizedError.kind === "unauthorized") {
-      await handleApiUnauthorized();
+      if (
+        axiosError.response?.status === 401 &&
+        config &&
+        !config.skipAuthRefresh &&
+        !config.authRetryAttempted
+      ) {
+        config.authRetryAttempted = true;
+        const accessToken = await refreshApiAccessToken();
+
+        if (accessToken) {
+          const headers = AxiosHeaders.from(config.headers);
+          headers.set("Authorization", `Bearer ${accessToken}`);
+          config.headers = headers;
+          return apiClient.request(config);
+        }
+
+        await handleApiSessionExpired();
+      }
     }
 
-    return Promise.reject(normalizedError);
+    return Promise.reject(normalizeApiError(error));
   },
 );
