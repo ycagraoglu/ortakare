@@ -2,7 +2,7 @@
 
 ## Amaç
 
-Ortakare frontend uygulamasında public ve authenticated owner yüzeylerini birbirinden ayıran, route metadata kullanan, lazy yüklemeye ve route-level hata izolasyonuna hazır bir router omurgası kurmak.
+Ortakare frontend uygulamasında public ve authenticated owner yüzeylerini birbirinden ayıran, route metadata kullanan, gerçek feature-level lazy loading sağlayan ve merkezi navigation registry ile çalışan router omurgası kurmak.
 
 ## Kurulan yapı
 
@@ -10,13 +10,20 @@ Ortakare frontend uygulamasında public ve authenticated owner yüzeylerini birb
 frontend/src/app/
 ├── layouts/
 │   ├── OwnerLayout.tsx
-│   └── PublicLayout.tsx
+│   ├── PublicLayout.tsx
+│   └── owner-layout.css
+├── navigation/
+│   ├── OwnerSidebar.tsx
+│   ├── OwnerTopbar.tsx
+│   └── owner-navigation.ts
 └── router/
+    ├── lazy-route.ts
     ├── route-breadcrumbs.tsx
     ├── route-error.tsx
     ├── route-guards.tsx
     ├── route-loading.tsx
     ├── route-meta.ts
+    ├── route-modules.ts
     ├── route-pages.tsx
     └── router.tsx
 ```
@@ -51,7 +58,7 @@ Bilinmeyen URL'ler `404` sayfasına gider.
 - `ProtectedRoute`: authenticated olmayan kullanıcıyı `/login` sayfasına yönlendirir.
 - `AnonymousRoute`: authenticated kullanıcıyı `/dashboard` sayfasına yönlendirir.
 - `PermissionRoute`: gelecekteki rol/izin modelinin route ağacına bağlanması için hazırdır.
-- Session `initializing` durumundayken route skeleton gösterilir.
+- Session `initializing` durumundayken route loading ekranı gösterilir.
 
 ## Metadata
 
@@ -62,11 +69,57 @@ Metadata şu amaçlarla kullanılır:
 - `document.title` üretimi
 - breadcrumb üretimi
 - gelecekte permission kontrolü
-- gelecekte navigation registry üretimi
+- route tabanlı navigation davranışı
 
-## Lazy loading
+## Gerçek feature-level lazy loading
 
-Sayfa componentleri `React.lazy` ve `Suspense` üzerinden yüklenir. İlk placeholder ekranlar ortak bir route page modülündedir. Gerçek feature modülleri yazıldığında her feature kendi `pages` giriş dosyasına taşınmalı ve ayrı dynamic import ile gerçek feature-level chunk ayrımı sağlanmalıdır.
+Business sayfaları ortak bir route dosyasında tutulmaz. Her sayfa kendi feature klasöründen dynamic import edilir:
+
+```text
+features/dashboard/pages/DashboardPage.tsx
+features/events/pages/EventsPage.tsx
+features/photos/pages/PhotosPage.tsx
+```
+
+`route-modules.ts`, lazy componentleri ve preload fonksiyonlarını merkezi olarak tanımlar. Böylece router ile navigation aynı module registry'yi kullanır ve circular dependency oluşmaz.
+
+## Navigation registry
+
+Sidebar öğeleri `owner-navigation.ts` içinde tek kaynaktan yönetilir. Her öğe:
+
+- route key
+- URL
+- kullanıcı etiketi
+- kısa açıklama
+- preload fonksiyonu
+- exact match davranışı
+
+taşır.
+
+Yeni owner modülü eklenirken route, lazy module ve navigation kaydı birlikte açıkça tanımlanır.
+
+## Prefetch davranışı
+
+Sidebar bağlantısına mouse ile gelindiğinde veya klavye ile focus verildiğinde ilgili feature chunk arka planda yüklenir.
+
+Preload hatası navigation'ı bozmaz; asıl route yüklemesi hata boundary tarafından yönetilir.
+
+## Owner shell
+
+`OwnerLayout` yalnızca uygulama kabuğunu birleştirir:
+
+```text
+OwnerSidebar
+OwnerTopbar
+RouteBreadcrumbs
+Outlet
+```
+
+Sidebar ve topbar ayrı componentlerdir. Layout masaüstünde iki kolonlu, dar ekranlarda tek kolonlu responsive düzene geçer.
+
+## Breadcrumb
+
+Breadcrumb route metadata üzerinden otomatik üretilir. Son öğe `aria-current="page"` ile işaretlenir; önceki öğeler navigasyon bağlantısıdır.
 
 ## Hata yönetimi
 
@@ -78,17 +131,13 @@ Route error boundary aşağıdaki senaryoları kapsar:
 
 Chunk yükleme hatasında yalnızca bir kez otomatik yenileme denenir. Sonsuz reload döngüsü `sessionStorage` anahtarıyla engellenir.
 
-## Layout ayrımı
-
-`PublicLayout` ve `OwnerLayout` nested route seviyesinde ayrılmıştır. Owner layout sidebar, header, kullanıcı bilgisi, logout ve breadcrumb alanlarını taşır.
-
 ## Bilinçli olarak sonraya bırakılanlar
 
 - Gerçek login/register formları
 - Gerçek feature ekranları
 - Role/permission verisinin auth session'a eklenmesi
-- Sidebar hover ile bundle prefetch
 - Feature özel skeleton componentleri
+- Mobil drawer sidebar davranışı
 - Offline durumunun browser eventleriyle otomatik yönlendirilmesi
 - Route transition animasyonları
 
