@@ -6,6 +6,8 @@ interface ServiceWorkerState {
   updateAvailable: boolean;
 }
 
+const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+
 export function useServiceWorker() {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [state, setState] = useState<ServiceWorkerState>({
@@ -17,6 +19,12 @@ export function useServiceWorker() {
   useEffect(() => {
     const handleOnline = () => setState((current) => ({ ...current, isOffline: false }));
     const handleOffline = () => setState((current) => ({ ...current, isOffline: true }));
+    let refreshing = false;
+    const handleControllerChange = () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    };
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -29,13 +37,9 @@ export function useServiceWorker() {
     }
 
     let active = true;
-    let refreshing = false;
+    let updateTimer: number | undefined;
 
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    });
+    navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
 
     void navigator.serviceWorker.register("/sw.js").then((nextRegistration) => {
       if (!active) return;
@@ -55,12 +59,20 @@ export function useServiceWorker() {
           }
         });
       });
+
+      updateTimer = window.setInterval(() => {
+        if (navigator.onLine) void nextRegistration.update();
+      }, UPDATE_CHECK_INTERVAL_MS);
+    }).catch((error: unknown) => {
+      if (import.meta.env.DEV) console.error("Service worker registration failed", error);
     });
 
     return () => {
       active = false;
+      if (updateTimer !== undefined) window.clearInterval(updateTimer);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
     };
   }, []);
 
