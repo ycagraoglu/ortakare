@@ -18,11 +18,14 @@ export type ApiErrorKind =
   | "server"
   | "unknown";
 
+export type ApiFieldErrors = Readonly<Record<string, readonly string[]>>;
+
 interface ApiErrorOptions {
   kind: ApiErrorKind;
   message: string;
   statusCode?: number;
   correlationId?: string;
+  fieldErrors?: ApiFieldErrors;
   cause?: unknown;
 }
 
@@ -30,6 +33,7 @@ export class ApiError extends Error {
   readonly kind: ApiErrorKind;
   readonly statusCode: number | undefined;
   readonly correlationId: string | undefined;
+  readonly fieldErrors: ApiFieldErrors;
 
   constructor(options: ApiErrorOptions) {
     super(options.message, { cause: options.cause });
@@ -37,6 +41,7 @@ export class ApiError extends Error {
     this.kind = options.kind;
     this.statusCode = options.statusCode;
     this.correlationId = options.correlationId;
+    this.fieldErrors = options.fieldErrors ?? {};
   }
 }
 
@@ -67,6 +72,30 @@ function defaultMessage(kind: ApiErrorKind): string {
   }
 }
 
+function readFieldErrors(value: unknown): ApiFieldErrors {
+  if (!value || typeof value !== "object") return {};
+
+  const candidate = value as Record<string, unknown>;
+  const source = candidate.errors ?? candidate.validationErrors;
+  if (!source || typeof source !== "object" || Array.isArray(source)) return {};
+
+  const result: Record<string, readonly string[]> = {};
+
+  for (const [field, messages] of Object.entries(source as Record<string, unknown>)) {
+    if (Array.isArray(messages)) {
+      const normalized = messages.filter((message): message is string => typeof message === "string" && message.trim().length > 0);
+      if (normalized.length > 0) result[field] = normalized;
+      continue;
+    }
+
+    if (typeof messages === "string" && messages.trim().length > 0) {
+      result[field] = [messages];
+    }
+  }
+
+  return result;
+}
+
 export function normalizeApiError(error: unknown): ApiError {
   if (error instanceof ApiError) return error;
 
@@ -93,12 +122,14 @@ export function normalizeApiError(error: unknown): ApiError {
     ? responseData.message
     : null;
   const correlationId = error.response.headers["x-correlation-id"];
+  const fieldErrors = readFieldErrors(responseData);
 
   return new ApiError({
     kind,
     statusCode,
     message: backendMessage?.trim() || defaultMessage(kind),
     ...(typeof correlationId === "string" ? { correlationId } : {}),
+    ...(Object.keys(fieldErrors).length > 0 ? { fieldErrors } : {}),
     cause: error,
   });
 }
