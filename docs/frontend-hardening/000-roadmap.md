@@ -15,7 +15,7 @@ Frontend klasöründe yalnızca planlama README'si bulunmaktadır. Bu nedenle se
 3. ✅ **Authentication Session** — access/refresh token akışı, tekilleştirilmiş refresh, session restore ve logout politikası.
 4. ✅ **TanStack Query Standardı** — QueryClient, query-key factory, stale/cache süreleri, invalidation kuralları.
 5. ✅ **Routing ve Code Splitting** — route grupları, lazy loading, owner/public yüzey ayrımı, metadata, breadcrumb, 404/403 ve chunk recovery.
-6. ⏳ **Form Standardı** — React Hook Form, Zod, backend validation eşlemesi, dirty-state koruması.
+6. ✅ **Form Standardı** — React Hook Form, Zod, backend validation eşlemesi, dirty-state koruması ve login referans uygulaması.
 7. ⏳ **UI State Standardı** — loading, skeleton, empty, error, retry ve disabled-state kuralları.
 8. ⏳ **Global Error Handling** — ErrorBoundary, chunk-load recovery, offline/network/timeout deneyimi.
 9. ⏳ **Upload Hardening** — istemci ön kontrolü, progress, cancellation, idempotency header, güvenli preview.
