@@ -1,5 +1,6 @@
-const CACHE_VERSION = "ortakare-shell-v1";
+const CACHE_VERSION = "ortakare-shell-v2";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/pwa-icon.svg"];
+const CACHEABLE_DESTINATIONS = new Set(["script", "style", "font", "image"]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.addAll(APP_SHELL)));
@@ -17,54 +18,51 @@ self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
 });
 
-function isCacheableRequest(request) {
-  if (request.method !== "GET") return false;
-
-  const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return false;
-
-  const path = url.pathname.toLowerCase();
-  if (
-    path.startsWith("/api/") ||
+function isSensitivePath(path) {
+  return path.startsWith("/api/") ||
     path.includes("/auth/") ||
     path.includes("upload") ||
     path.includes("download") ||
-    path.includes("export")
-  ) return false;
+    path.includes("export");
+}
 
-  return request.destination === "document" ||
-    request.destination === "script" ||
-    request.destination === "style" ||
-    request.destination === "font" ||
-    request.destination === "image" ||
-    path === "/manifest.webmanifest";
+function isCacheableAsset(request, url) {
+  if (request.method !== "GET" || url.origin !== self.location.origin) return false;
+  if (isSensitivePath(url.pathname.toLowerCase())) return false;
+  return CACHEABLE_DESTINATIONS.has(request.destination) || url.pathname === "/manifest.webmanifest";
 }
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-  if (!isCacheableRequest(request)) return;
+  const url = new URL(request.url);
+
+  if (request.method !== "GET" || url.origin !== self.location.origin || isSensitivePath(url.pathname.toLowerCase())) {
+    return;
+  }
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: "no-store" })
         .then((response) => {
           if (response.ok) {
             const copy = response.clone();
-            caches.open(CACHE_VERSION).then((cache) => cache.put("/", copy));
+            event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.put("/", copy)));
           }
           return response;
         })
-        .catch(() => caches.match("/")),
+        .catch(() => caches.match("/").then((cached) => cached ?? Response.error())),
     );
     return;
   }
+
+  if (!isCacheableAsset(request, url)) return;
 
   event.respondWith(
     caches.match(request).then((cached) => {
       const network = fetch(request).then((response) => {
         if (response.ok && response.type === "basic") {
           const copy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy));
+          event.waitUntil(caches.open(CACHE_VERSION).then((cache) => cache.put(request, copy)));
         }
         return response;
       });
