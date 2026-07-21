@@ -14,6 +14,10 @@ Ortakare frontend uygulamasına kurulabilir PWA kabiliyeti eklemek; service work
 - uygulama kapsamı ve başlangıç URL'si,
 - maskable kullanılabilen SVG ikon.
 
+## Tek service worker kararı
+
+Projede yalnızca `frontend/public/sw.js` kullanılır. Manuel worker ile build plugin tarafından üretilen ikinci bir worker birlikte çalıştırılmaz. Böylece kayıt, update ve cache sahipliği tek noktada kalır.
+
 ## Service worker güvenlik politikası
 
 Service worker yalnızca aynı origin üzerindeki statik uygulama kabuğunu cache'ler.
@@ -31,15 +35,18 @@ Bu karar kullanıcıya özel API cevaplarının, token ilişkili içeriklerin ve
 
 ## Cache stratejisi
 
-- Navigasyon istekleri: network-first, başarısızsa cache'lenmiş uygulama kabuğu.
+- Navigasyon istekleri: network-first ve `cache: no-store`; başarısızsa cache'lenmiş uygulama kabuğu.
 - Script, style, font ve statik image: cache-first, arka planda network güncellemesi.
 - API ve mutation istekleri: service worker müdahalesi yok.
+- Eski cache sürümleri activation sırasında temizlenir.
 
 ## Yeni sürüm akışı
 
 Yeni service worker kurulup waiting durumuna geçtiğinde kullanıcıya yeni sürüm bildirimi gösterilir. Kullanıcı `Şimdi güncelle` dediğinde `SKIP_WAITING` mesajı gönderilir. Yeni worker kontrolü alınca sayfa bir kez yenilenir.
 
-Güncelleme kullanıcı onayı olmadan çalışma ortasında zorla uygulanmaz.
+Güncelleme kullanıcı onayı olmadan çalışma ortasında zorla uygulanmaz. Uygulama açıkken worker güncellemesi saatte bir kontrol edilir.
+
+`controllerchange`, online ve offline listener'ları component unmount sırasında temizlenir. Bu sayede tekrar mount senaryolarında biriken event listener oluşmaz.
 
 ## Offline sınırı
 
@@ -48,11 +55,20 @@ Offline banner açıkça şunu belirtir:
 - önceden yüklenmiş ekranlar açılabilir,
 - gönderme, güncelleme, upload ve diğer server işlemleri bağlantı gerektirir.
 
-Ortakare offline-first veri düzenleme uygulaması değildir. Mutation queue veya background sync bu aşamada bilinçli olarak uygulanmamıştır.
+Ortakare offline-first veri düzenleme uygulaması değildir. Mutation queue, kullanıcı verisini IndexedDB'de saklama veya background sync bu aşamada bilinçli olarak uygulanmamıştır.
 
 ## Kurulum davranışı
 
 Tarayıcının doğal install UI'sı kullanılır. Özel `beforeinstallprompt` butonu bu aşamada eklenmemiştir; platformlar arası farklı davranışlar nedeniyle install çağrısı ayrı UX çalışması olarak bırakılmıştır.
+
+## Tarayıcı doğrulama kontrolü
+
+1. Application > Manifest bölümünde manifest hatası bulunmamalıdır.
+2. Service Workers bölümünde yalnızca tek worker görünmelidir.
+3. Cache Storage içinde API, auth, upload, download veya export yanıtı bulunmamalıdır.
+4. Offline modda daha önce açılmış uygulama kabuğu yüklenmelidir.
+5. Yeni worker waiting durumuna geçtiğinde update bildirimi görünmelidir.
+6. `Şimdi güncelle` sonrasında yalnızca bir reload gerçekleşmelidir.
 
 ## Doğrulama durumu
 
