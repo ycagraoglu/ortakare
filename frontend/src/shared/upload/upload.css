@@ -1,0 +1,83 @@
+.image-upload {
+  display: grid;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #dbe3ee;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.image-upload h2,
+.image-upload p {
+  margin: 0;
+}
+
+.image-upload__picker {
+  display: inline-flex;
+  width: fit-content;
+  cursor: pointer;
+  border: 1px dashed #94a3b8;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+}
+
+.image-upload__picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.image-upload__selection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.image-upload__selection img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 0.75rem;
+}
+
+.image-upload__selection div,
+.image-upload__progress {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.image-upload__progress progress {
+  width: 100%;
+}
+
+.image-upload__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.image-upload__actions button {
+  min-height: 2.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.65rem;
+  padding: 0.55rem 0.9rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+.image-upload__actions button:disabled,
+.image-upload__picker:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.image-upload__error {
+  color: #b42318;
+}
+
+.image-upload__success {
+  color: #067647;
+}
