@@ -18,7 +18,7 @@ Frontend klasöründe yalnızca planlama README'si bulunmaktadır. Bu nedenle se
 6. ✅ **Form Standardı** — React Hook Form, Zod, backend validation eşlemesi, dirty-state koruması ve login referans uygulaması.
 7. ✅ **UI State Standardı** — loading, skeleton, empty, error, retry ve disabled-state kuralları.
 8. ✅ **Global Error Handling** — application error boundary, route fallback, chunk-load recovery, offline/network/timeout ayrımı ve correlation-id görünümü.
-9. ⏳ **Upload Hardening** — istemci ön kontrolü, progress, cancellation, idempotency header, güvenli preview.
+9. ✅ **Upload Hardening** — istemci ön kontrolü, progress, cancellation, client upload id, duplicate-submit koruması ve güvenli preview.
 10. ⏳ **PWA Hardening** — manifest, service worker stratejisi, update akışı, offline sınırları, cache güvenliği.
 11. ⏳ **Frontend Security** — token saklama kararı, XSS/CSP uyumu, external URL ve download güvenliği.
 12. ⏳ **Accessibility** — klavye, focus yönetimi, aria, form hata duyuruları ve modal davranışı.
