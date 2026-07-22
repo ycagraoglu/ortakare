@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 
 import { GlobalErrorFallback } from "@/shared/error/GlobalErrorFallback";
 import { classifyGlobalError, type GlobalErrorDetails } from "@/shared/error/error-utils";
+import { reportClientError } from "@/shared/observability";
 
 interface ApplicationErrorBoundaryProps {
   children: ReactNode;
@@ -22,6 +23,8 @@ export class ApplicationErrorBoundary extends Component<
   }
 
   componentDidCatch(error: unknown, info: ErrorInfo): void {
+    reportClientError(error, { source: "error-boundary" });
+
     if (import.meta.env.DEV) {
       console.error("Unhandled application error", error, info);
     }
