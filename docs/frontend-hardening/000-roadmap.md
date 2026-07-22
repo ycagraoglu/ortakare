@@ -20,7 +20,7 @@ Frontend klasöründe yalnızca planlama README'si bulunmaktadır. Bu nedenle se
 8. ✅ **Global Error Handling** — application error boundary, route fallback, chunk-load recovery, offline/network/timeout ayrımı ve correlation-id görünümü.
 9. ✅ **Upload Hardening** — istemci ön kontrolü, progress, cancellation, client upload id, duplicate-submit koruması ve güvenli preview.
 10. ✅ **PWA Hardening** — manifest, güvenli service worker cache stratejisi, kontrollü update akışı ve offline sınırları.
-11. ⏳ **Frontend Security** — token saklama kararı, XSS/CSP uyumu, external URL ve download güvenliği.
+11. ✅ **Frontend Security** — memory/session token sınırı, API origin koruması, trusted URL/download yardımcıları, CSP ve IIS güvenlik başlıkları.
 12. ⏳ **Accessibility** — klavye, focus yönetimi, aria, form hata duyuruları ve modal davranışı.
 13. ⏳ **Observability** — web vitals, istemci hata korelasyonu, request-id/trace-id görünürlüğü.
 14. ⏳ **Test Strategy** — unit, component, integration ve kritik kullanıcı akışı testleri.
