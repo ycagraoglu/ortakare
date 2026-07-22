@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const apiUrlSchema = z
+const secureUrlSchema = z
   .string()
   .url()
   .transform((value) => value.replace(/\/$/, ""))
@@ -11,13 +11,15 @@ const apiUrlSchema = z
     if (url.protocol !== "https:") {
       context.addIssue({
         code: "custom",
-        message: "Production API URL must use HTTPS.",
+        message: "Production URLs must use HTTPS.",
       });
     }
   });
 
 const envSchema = z.object({
-  VITE_API_URL: apiUrlSchema,
+  VITE_API_URL: secureUrlSchema,
+  VITE_TELEMETRY_URL: z.union([secureUrlSchema, z.literal("")]).optional(),
+  VITE_RELEASE: z.string().trim().max(100).optional(),
 });
 
 const result = envSchema.safeParse(import.meta.env);
