@@ -14,6 +14,19 @@ import { normalizeApiError } from "@/shared/api/api-error";
 import { env } from "@/shared/config/env";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
+const API_ORIGIN = new URL(env.VITE_API_URL).origin;
+
+function assertTrustedApiRequest(config: InternalAxiosRequestConfig): void {
+  const requestUrl = new URL(config.url ?? "", config.baseURL ?? env.VITE_API_URL);
+
+  if (requestUrl.origin !== API_ORIGIN) {
+    throw new Error("API client rejected a request to an untrusted origin.");
+  }
+
+  if (import.meta.env.PROD && requestUrl.protocol !== "https:") {
+    throw new Error("API client rejected an insecure production request.");
+  }
+}
 
 export const apiClient = axios.create({
   baseURL: env.VITE_API_URL,
@@ -24,6 +37,8 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  assertTrustedApiRequest(config);
+
   const headers = AxiosHeaders.from(config.headers);
   const accessToken = getApiAccessToken();
 
