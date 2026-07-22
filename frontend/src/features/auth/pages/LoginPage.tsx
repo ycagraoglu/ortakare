@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { getRememberedEmail } from "@/features/auth/model/auth-storage";
 import {
   loginSchema,
   type LoginFormValues,
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [submitError, setSubmitError] = useState<string>();
+  const rememberedEmail = getRememberedEmail();
 
   const {
     register,
@@ -33,9 +35,9 @@ export default function LoginPage() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      email: rememberedEmail,
       password: "",
-      rememberMe: false,
+      rememberMe: rememberedEmail.length > 0,
     },
     mode: "onBlur",
   });
@@ -86,7 +88,7 @@ export default function LoginPage() {
 
         <label>
           <input type="checkbox" {...register("rememberMe")} />{" "}
-          Bu cihazda oturumu açık tut
+          E-posta adresimi bu cihazda hatırla
         </label>
 
         <div className="form-actions">
