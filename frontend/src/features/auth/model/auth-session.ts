@@ -3,6 +3,7 @@ import {
   clearStoredSession,
   getStoredRefreshToken,
   getStoredUser,
+  saveRememberedEmail,
   saveStoredSession,
   updateStoredRefreshToken,
 } from "@/features/auth/model/auth-storage";
@@ -92,7 +93,7 @@ export const authSession = {
     await clearSession();
   },
 
-  async login(request: LoginRequest, persistent: boolean): Promise<void> {
+  async login(request: LoginRequest, rememberEmail: boolean): Promise<void> {
     const response = await login(request);
     const user: AuthUser = {
       id: response.userId,
@@ -105,8 +106,8 @@ export const authSession = {
     saveStoredSession({
       refreshToken: response.refreshToken,
       user,
-      persistent,
     });
+    saveRememberedEmail(rememberEmail ? request.email : null);
     emit({ status: "authenticated", user });
   },
 
