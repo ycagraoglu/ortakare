@@ -3,6 +3,7 @@ import { useLocation, useMatches } from "react-router-dom";
 
 import type { AppRouteHandle } from "@/app/router/route-meta";
 import "@/shared/accessibility/accessibility.css";
+import { createTelemetryContext, reportTelemetry } from "@/shared/observability";
 
 const APP_NAME = "Ortakare";
 
@@ -24,6 +25,13 @@ export function RouteAccessibility() {
 
   useEffect(() => {
     document.title = routeTitle === APP_NAME ? APP_NAME : `${routeTitle} | ${APP_NAME}`;
+
+    reportTelemetry({
+      ...createTelemetryContext(),
+      type: "route-view",
+      level: "info",
+      title: routeTitle.slice(0, 100),
+    });
 
     if (announcementRef.current) {
       announcementRef.current.textContent = `${routeTitle} sayfası açıldı.`;
