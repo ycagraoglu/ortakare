@@ -2,46 +2,32 @@ import type { AuthUser } from "@/features/auth/model/auth-types";
 
 const REFRESH_TOKEN_KEY = "ortakare.auth.refresh-token";
 const USER_KEY = "ortakare.auth.user";
+const REMEMBERED_EMAIL_KEY = "ortakare.auth.remembered-email";
 
-function getStorage(persistent: boolean): Storage {
-  return persistent ? window.localStorage : window.sessionStorage;
-}
-
-function clearFrom(storage: Storage): void {
-  storage.removeItem(REFRESH_TOKEN_KEY);
-  storage.removeItem(USER_KEY);
+function clearSessionStorage(): void {
+  window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+  window.sessionStorage.removeItem(USER_KEY);
 }
 
 export function saveStoredSession(options: {
   refreshToken: string;
   user: AuthUser;
-  persistent: boolean;
 }): void {
   clearStoredSession();
-  const storage = getStorage(options.persistent);
-  storage.setItem(REFRESH_TOKEN_KEY, options.refreshToken);
-  storage.setItem(USER_KEY, JSON.stringify(options.user));
+  window.sessionStorage.setItem(REFRESH_TOKEN_KEY, options.refreshToken);
+  window.sessionStorage.setItem(USER_KEY, JSON.stringify(options.user));
 }
 
 export function updateStoredRefreshToken(refreshToken: string): void {
-  const storage = window.localStorage.getItem(REFRESH_TOKEN_KEY)
-    ? window.localStorage
-    : window.sessionStorage;
-
-  storage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  window.sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 }
 
 export function getStoredRefreshToken(): string | null {
-  return (
-    window.localStorage.getItem(REFRESH_TOKEN_KEY) ??
-    window.sessionStorage.getItem(REFRESH_TOKEN_KEY)
-  );
+  return window.sessionStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
 export function getStoredUser(): AuthUser | null {
-  const raw =
-    window.localStorage.getItem(USER_KEY) ??
-    window.sessionStorage.getItem(USER_KEY);
+  const raw = window.sessionStorage.getItem(USER_KEY);
 
   if (!raw) return null;
 
@@ -70,7 +56,21 @@ export function getStoredUser(): AuthUser | null {
   return null;
 }
 
+export function saveRememberedEmail(email: string | null): void {
+  if (!email) {
+    window.localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(REMEMBERED_EMAIL_KEY, email.trim().toLowerCase());
+}
+
+export function getRememberedEmail(): string {
+  return window.localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? "";
+}
+
 export function clearStoredSession(): void {
-  clearFrom(window.localStorage);
-  clearFrom(window.sessionStorage);
+  clearSessionStorage();
+  window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+  window.localStorage.removeItem(USER_KEY);
 }
