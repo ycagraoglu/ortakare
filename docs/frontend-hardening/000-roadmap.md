@@ -21,7 +21,7 @@ Frontend klasöründe yalnızca planlama README'si bulunmaktadır. Bu nedenle se
 9. ✅ **Upload Hardening** — istemci ön kontrolü, progress, cancellation, client upload id, duplicate-submit koruması ve güvenli preview.
 10. ✅ **PWA Hardening** — manifest, güvenli service worker cache stratejisi, kontrollü update akışı ve offline sınırları.
 11. ✅ **Frontend Security** — memory/session token sınırı, API origin koruması, trusted URL/download yardımcıları, CSP ve IIS güvenlik başlıkları.
-12. ⏳ **Accessibility** — klavye, focus yönetimi, aria, form hata duyuruları ve modal davranışı.
+12. ✅ **Accessibility** — skip link, route title ve live announcement, focus yönetimi, reduced motion ve erişilebilir dialog standardı.
 13. ⏳ **Observability** — web vitals, istemci hata korelasyonu, request-id/trace-id görünürlüğü.
 14. ⏳ **Test Strategy** — unit, component, integration ve kritik kullanıcı akışı testleri.
 15. ⏳ **Frontend CI** — clean install, typecheck, lint, test, build ve bundle budget.
