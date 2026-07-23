@@ -2,7 +2,7 @@ using System.Net;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
 using AspNetForwardedHeadersOptions = Microsoft.AspNetCore.Builder.ForwardedHeadersOptions;
-using AspNetIPNetwork = System.Net.IPNetwork;
+using AspNetIPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace Ortakare.Api.Infrastructure.Proxy;
 
