@@ -3,7 +3,6 @@
     <Project Path="src/Ortakare.Api/Ortakare.Api.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/Ortakare.IntegrationTests/Ortakare.IntegrationTests.csproj" />
     <Project Path="tests/Ortakare.UnitTests/Ortakare.UnitTests.csproj" />
   </Folder>
 </Solution>
