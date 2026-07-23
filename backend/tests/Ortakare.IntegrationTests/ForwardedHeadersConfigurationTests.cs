@@ -29,7 +29,7 @@ public sealed class ForwardedHeadersConfigurationTests
 
         Assert.Equal(ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto, options.ForwardedHeaders);
         Assert.Equal(1, options.ForwardLimit);
-        Assert.Contains(System.Net.IPAddress.Loopback, options.KnownProxies);
+        Assert.Contains(global::System.Net.IPAddress.Loopback, options.KnownProxies);
     }
 
     [Fact]
