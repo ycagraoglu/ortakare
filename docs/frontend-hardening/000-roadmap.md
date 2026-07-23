@@ -25,7 +25,7 @@ Frontend klasöründe yalnızca planlama README'si bulunmaktadır. Bu nedenle se
 13. ✅ **Observability** — privacy-safe telemetry sözleşmesi, route/API/error ölçümleri, Core Web Vitals, correlation-id ve release context.
 14. ✅ **Test Strategy** — Vitest setup, Testing Library render helper, MSW network mock standardı, güvenlik/accessibility regresyon testleri ve coverage eşikleri.
 15. ✅ **Frontend CI** — GitHub Actions kısıtı için local-first verify komutu, manuel workflow, coverage/build zinciri ve bundle budget.
-16. ⏳ **Production Readiness Review** — deployment, rollback, smoke test, cache invalidation ve GO/NO-GO.
+16. ✅ **Production Readiness Review** — release readiness ve smoke scriptleri, IIS deployment/rollback planı, cache politikası ve açık GO/NO-GO kontrol listesi. Mevcut karar doğrulamalar tamamlanana kadar NO-GO'dur.
 
 ## Bağlayıcı kurallar
 
