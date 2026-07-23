@@ -24,7 +24,7 @@ Frontend klasöründe yalnızca planlama README'si bulunmaktadır. Bu nedenle se
 12. ✅ **Accessibility** — skip link, route title ve live announcement, focus yönetimi, reduced motion ve erişilebilir dialog standardı.
 13. ✅ **Observability** — privacy-safe telemetry sözleşmesi, route/API/error ölçümleri, Core Web Vitals, correlation-id ve release context.
 14. ✅ **Test Strategy** — Vitest setup, Testing Library render helper, MSW network mock standardı, güvenlik/accessibility regresyon testleri ve coverage eşikleri.
-15. ⏳ **Frontend CI** — clean install, typecheck, lint, test, build ve bundle budget.
+15. ✅ **Frontend CI** — GitHub Actions kısıtı için local-first verify komutu, manuel workflow, coverage/build zinciri ve bundle budget.
 16. ⏳ **Production Readiness Review** — deployment, rollback, smoke test, cache invalidation ve GO/NO-GO.
 
 ## Bağlayıcı kurallar
