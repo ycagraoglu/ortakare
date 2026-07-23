@@ -8,6 +8,7 @@ using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -253,10 +254,10 @@ static bool IsValidCorsOrigin(string origin)
 
 static bool IsValidDashboardPath(string path)
 {
-    return path.StartsWith('/', StringComparison.Ordinal)
+    return path.StartsWith("/", StringComparison.Ordinal)
         && !path.StartsWith("//", StringComparison.Ordinal)
-        && !path.Contains('?')
-        && !path.Contains('#');
+        && !path.Contains("?", StringComparison.Ordinal)
+        && !path.Contains("#", StringComparison.Ordinal);
 }
 
 public partial class Program;
