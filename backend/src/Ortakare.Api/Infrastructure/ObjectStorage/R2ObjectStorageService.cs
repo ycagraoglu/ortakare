@@ -46,6 +46,40 @@ public sealed class R2ObjectStorageService(
         return new S3ResponseStream(response);
     }
 
+    public async Task<IReadOnlyList<ObjectStorageItem>> ListAsync(
+        string prefix,
+        int maxKeys,
+        CancellationToken cancellationToken)
+    {
+        var result = new List<ObjectStorageItem>(maxKeys);
+        string? continuationToken = null;
+
+        do
+        {
+            var response = await s3Client.ListObjectsV2Async(
+                new ListObjectsV2Request
+                {
+                    BucketName = _options.BucketName,
+                    Prefix = prefix,
+                    MaxKeys = Math.Min(1000, maxKeys - result.Count),
+                    ContinuationToken = continuationToken
+                },
+                cancellationToken);
+
+            result.AddRange(response.S3Objects.Select(x => new ObjectStorageItem(
+                x.Key,
+                x.LastModified.ToUniversalTime(),
+                x.Size)));
+
+            continuationToken = response.IsTruncated && result.Count < maxKeys
+                ? response.NextContinuationToken
+                : null;
+        }
+        while (!string.IsNullOrWhiteSpace(continuationToken));
+
+        return result;
+    }
+
     public Task DeleteAsync(string key, CancellationToken cancellationToken) =>
         s3Client.DeleteObjectAsync(
             new DeleteObjectRequest

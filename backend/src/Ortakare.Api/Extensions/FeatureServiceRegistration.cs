@@ -26,6 +26,7 @@ using Ortakare.Api.Features.GalleryExports.CreateGalleryExport;
 using Ortakare.Api.Features.GalleryExports.DeleteGalleryExport;
 using Ortakare.Api.Features.GalleryExports.GetEventExports;
 using Ortakare.Api.Features.GalleryExports.GetGalleryExport;
+using Ortakare.Api.Features.GalleryExports.GetGalleryExportDownloadUrl;
 using Ortakare.Api.Features.GalleryExports.RetryFailedGalleryExport;
 using Ortakare.Api.Features.Notifications;
 using Ortakare.Api.Features.Notifications.CreateNotificationStreamToken;
@@ -137,11 +138,35 @@ public static class FeatureServiceRegistration
         services.AddScoped<DeleteGuestPhotoHandler>();
         services.AddScoped<CreateGalleryExportHandler>();
         services.AddScoped<GetGalleryExportHandler>();
+        services.AddScoped<GetGalleryExportDownloadUrlHandler>();
         services.AddScoped<GetEventExportsHandler>();
         services.AddScoped<RetryFailedGalleryExportHandler>();
         services.AddScoped<DeleteGalleryExportHandler>();
         services.AddScoped<CancelPendingGalleryExportHandler>();
         services.AddScoped<BuildGalleryExportJob>();
+        services.AddScoped<CleanupExpiredGalleryExportsJob>();
+        services.AddOptions<GalleryExportCleanupOptions>()
+            .BindConfiguration(GalleryExportCleanupOptions.SectionName)
+            .Validate(x => x.IntervalMinutes is > 0 and <= 1440,
+                "GalleryExportCleanup:IntervalMinutes must be between 1 and 1440.")
+            .Validate(x => x.BatchSize is > 0 and <= 1000,
+                "GalleryExportCleanup:BatchSize must be between 1 and 1000.")
+            .ValidateOnStart();
+        services.AddHostedService<GalleryExportCleanupWorker>();
+
+        services.AddScoped<CleanupOrphanFilesJob>();
+        services.AddOptions<OrphanFileCleanupOptions>()
+            .BindConfiguration(OrphanFileCleanupOptions.SectionName)
+            .Validate(x => x.IntervalHours is > 0 and <= 168,
+                "OrphanFileCleanup:IntervalHours must be between 1 and 168.")
+            .Validate(x => x.GracePeriodHours is >= 1 and <= 720,
+                "OrphanFileCleanup:GracePeriodHours must be between 1 and 720.")
+            .Validate(x => x.MaxObjectsPerPrefix is > 0 and <= 100000,
+                "OrphanFileCleanup:MaxObjectsPerPrefix must be between 1 and 100000.")
+            .Validate(x => x.MaxDeletesPerRun is > 0 and <= 5000,
+                "OrphanFileCleanup:MaxDeletesPerRun must be between 1 and 5000.")
+            .ValidateOnStart();
+        services.AddHostedService<OrphanFileCleanupWorker>();
 
         services.Configure<OutboxProcessingOptions>(_ => { });
         services.AddScoped<OutboxProcessor>();

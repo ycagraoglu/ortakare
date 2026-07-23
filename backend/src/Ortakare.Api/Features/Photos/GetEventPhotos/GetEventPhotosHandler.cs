@@ -38,6 +38,7 @@ public sealed class GetEventPhotosHandler(
 
         var rows = await query
             .OrderByDescending(x => x.CreatedAtUtc)
+            .ThenByDescending(x => x.Id)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
             .Join(

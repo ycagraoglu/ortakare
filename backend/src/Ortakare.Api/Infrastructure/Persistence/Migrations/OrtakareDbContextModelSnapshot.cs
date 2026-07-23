@@ -51,13 +51,34 @@ public partial class OrtakareDbContextModelSnapshot : ModelSnapshot
             entity.Property<DateTime?>("CompletedAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<Guid>("EventId").HasColumnType("uuid");
+            entity.Property<DateTime?>("ExpiresAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<DateTime?>("FailedAtUtc").HasColumnType("timestamp with time zone");
             entity.Property<int>("PhotoCount").HasColumnType("integer");
             entity.Property<string>("Status").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)");
             entity.Property<string>("StorageKey").HasMaxLength(500).HasColumnType("character varying(500)");
             entity.HasKey("Id");
+            entity.HasIndex("EventId").IsUnique().HasDatabaseName("UX_GalleryExports_EventId_Active").HasFilter("\"Status\" IN ('Pending', 'Processing')");
             entity.HasIndex("EventId", "CreatedAtUtc");
+            entity.HasIndex("Status", "ExpiresAtUtc");
             entity.ToTable("GalleryExports");
+        });
+
+        modelBuilder.Entity("Ortakare.Api.Infrastructure.Outbox.OutboxMessage", entity =>
+        {
+            entity.Property<Guid>("Id").ValueGeneratedNever().HasColumnType("uuid");
+            entity.Property<string>("LastError").HasMaxLength(2000).HasColumnType("character varying(2000)");
+            entity.Property<Guid?>("LockId").HasColumnType("uuid");
+            entity.Property<DateTime?>("LockedAtUtc").HasColumnType("timestamp with time zone");
+            entity.Property<DateTime?>("NextAttemptAtUtc").HasColumnType("timestamp with time zone");
+            entity.Property<DateTime>("OccurredAtUtc").HasColumnType("timestamp with time zone");
+            entity.Property<string>("PayloadJson").IsRequired().HasColumnType("jsonb");
+            entity.Property<DateTime?>("ProcessedAtUtc").HasColumnType("timestamp with time zone");
+            entity.Property<int>("RetryCount").HasColumnType("integer");
+            entity.Property<string>("Type").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
+            entity.HasKey("Id");
+            entity.HasIndex("LockId");
+            entity.HasIndex("ProcessedAtUtc", "NextAttemptAtUtc", "LockedAtUtc", "OccurredAtUtc");
+            entity.ToTable("OutboxMessages");
         });
 
         modelBuilder.Entity("Ortakare.Api.Features.Participants.EventGuestParticipant", entity =>

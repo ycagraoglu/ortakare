@@ -22,6 +22,8 @@ public sealed class OrtakareApiFactory : WebApplicationFactory<Program>
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Hangfire:Enabled"] = "false",
+                ["GalleryExportCleanup:Enabled"] = "false",
+                ["OrphanFileCleanup:Enabled"] = "false",
                 ["Cors:AllowedOrigins:0"] = "https://pwa.ortakare.test",
                 ["RateLimiting:AuthPermitLimit"] = "10000",
                 ["RateLimiting:PublicPermitLimit"] = "10000",

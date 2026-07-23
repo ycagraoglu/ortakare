@@ -24,9 +24,32 @@ public sealed class OrtakareDbContext(DbContextOptions<OrtakareDbContext> option
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ApplyGalleryExportLifecycleRules();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(
+        bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default)
+    {
+        ApplyGalleryExportLifecycleRules();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(OrtakareDbContext).Assembly);
         base.OnModelCreating(modelBuilder);
+    }
+
+    private void ApplyGalleryExportLifecycleRules()
+    {
+        foreach (var entry in ChangeTracker.Entries<GalleryExport>()
+                     .Where(x => x.State is EntityState.Added or EntityState.Modified))
+        {
+            entry.Entity.EnsureExpiration();
+        }
     }
 }

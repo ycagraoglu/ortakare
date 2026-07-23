@@ -8,9 +8,9 @@ using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Ortakare.Api.Common;
@@ -23,6 +23,7 @@ using Ortakare.Api.Infrastructure.BackgroundJobs;
 using Ortakare.Api.Infrastructure.Cors;
 using Ortakare.Api.Infrastructure.HealthChecks;
 using Ortakare.Api.Infrastructure.ObjectStorage;
+using Ortakare.Api.Infrastructure.Observability;
 using Ortakare.Api.Infrastructure.Persistence;
 using Ortakare.Api.Infrastructure.Proxy;
 using Ortakare.Api.Infrastructure.RateLimiting;
@@ -45,6 +46,7 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddFeatureHandlers();
+builder.Services.AddOrtakareObservability(builder.Configuration, builder.Environment);
 builder.Services.AddTrustedForwardedHeaders(builder.Configuration);
 builder.Services.AddHsts(options =>
 {
@@ -213,12 +215,12 @@ if (hangfireEnabled && hangfireDashboardOptions.Enabled)
     });
 }
 
-app.MapHealthChecks("/health/application", new HealthCheckOptions
+app.MapHealthChecks("/health/application", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = _ => false,
     ResponseWriter = HealthCheckResponseWriter.WriteAsync
 });
-app.MapHealthChecks("/health/dependencies", new HealthCheckOptions
+app.MapHealthChecks("/health/dependencies", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = registration => registration.Tags.Contains("ready"),
     ResponseWriter = HealthCheckResponseWriter.WriteAsync
@@ -253,7 +255,7 @@ static bool IsValidCorsOrigin(string origin)
 
 static bool IsValidDashboardPath(string path)
 {
-    return path.StartsWith('/', StringComparison.Ordinal)
+    return path.StartsWith("/", StringComparison.Ordinal)
         && !path.StartsWith("//", StringComparison.Ordinal)
         && !path.Contains('?')
         && !path.Contains('#');

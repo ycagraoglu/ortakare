@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Ortakare.Api.Common;
 using Ortakare.Api.Infrastructure.Authentication;
-using Ortakare.Api.Infrastructure.ObjectStorage;
 using Ortakare.Api.Infrastructure.Persistence;
 
 namespace Ortakare.Api.Features.GalleryExports.GetGalleryExport;
@@ -10,8 +8,6 @@ namespace Ortakare.Api.Features.GalleryExports.GetGalleryExport;
 public sealed class GetGalleryExportHandler(
     OrtakareDbContext dbContext,
     ICurrentUser currentUser,
-    IObjectStorageService objectStorageService,
-    IOptions<ObjectStorageOptions> objectStorageOptions,
     TimeProvider timeProvider)
 {
     public async Task<ApiResult<GetGalleryExportResponse>> HandleAsync(
@@ -28,9 +24,9 @@ public sealed class GetGalleryExportHandler(
                 x.Id,
                 x.Status,
                 x.PhotoCount,
-                x.StorageKey,
                 x.CreatedAtUtc,
                 x.CompletedAtUtc,
+                x.ExpiresAtUtc,
                 x.FailedAtUtc
             })
             .SingleOrDefaultAsync(cancellationToken);
@@ -42,18 +38,10 @@ public sealed class GetGalleryExportHandler(
                 StatusCodes.Status404NotFound);
         }
 
-        string? downloadUrl = null;
-        DateTime? downloadUrlExpiresAtUtc = null;
-
-        if (galleryExport.Status == GalleryExportStatus.Completed &&
-            !string.IsNullOrWhiteSpace(galleryExport.StorageKey))
-        {
-            downloadUrlExpiresAtUtc = timeProvider.GetUtcNow().UtcDateTime
-                .AddMinutes(objectStorageOptions.Value.SignedUrlMinutes);
-            downloadUrl = objectStorageService.CreateReadUrl(
-                galleryExport.StorageKey,
-                downloadUrlExpiresAtUtc.Value);
-        }
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var isExpired = galleryExport.Status == GalleryExportStatus.Completed &&
+                        galleryExport.ExpiresAtUtc.HasValue &&
+                        galleryExport.ExpiresAtUtc.Value <= now;
 
         return ApiResult<GetGalleryExportResponse>.Success(
             new GetGalleryExportResponse(
@@ -62,8 +50,8 @@ public sealed class GetGalleryExportHandler(
                 galleryExport.PhotoCount,
                 galleryExport.CreatedAtUtc,
                 galleryExport.CompletedAtUtc,
-                galleryExport.FailedAtUtc,
-                downloadUrl,
-                downloadUrlExpiresAtUtc));
+                galleryExport.ExpiresAtUtc,
+                isExpired,
+                galleryExport.FailedAtUtc));
     }
 }

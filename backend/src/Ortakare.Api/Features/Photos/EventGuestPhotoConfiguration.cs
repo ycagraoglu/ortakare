@@ -17,7 +17,10 @@ public sealed class EventGuestPhotoConfiguration : IEntityTypeConfiguration<Even
         builder.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
 
         builder.HasIndex(x => new { x.ParticipantId, x.ClientUploadId }).IsUnique();
-        builder.HasIndex(x => new { x.EventId, x.CreatedAtUtc });
+        builder.HasIndex(x => new { x.EventId, x.CreatedAtUtc, x.Id })
+            .HasDatabaseName("IX_EventGuestPhotos_EventId_CreatedAtUtc_Id");
+        builder.HasIndex(x => x.StorageKey)
+            .HasDatabaseName("IX_EventGuestPhotos_StorageKey");
 
         builder.HasOne<Event>()
             .WithMany()
