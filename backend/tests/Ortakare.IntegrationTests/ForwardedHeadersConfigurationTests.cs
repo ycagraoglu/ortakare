@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Ortakare.Api.Infrastructure.Proxy;
-using AspNetForwardedHeadersOptions = Microsoft.AspNetCore.HttpOverrides.ForwardedHeadersOptions;
+using AspNetForwardedHeadersOptions = Microsoft.AspNetCore.Builder.ForwardedHeadersOptions;
 
 namespace Ortakare.IntegrationTests;
 
