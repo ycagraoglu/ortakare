@@ -41,7 +41,7 @@ public static class ForwardedHeadersConfiguration
                 foreach (var network in configured.KnownNetworks)
                 {
                     var parts = network.Split('/', 2);
-                    options.KnownIPNetworks.Add(new IPNetwork(IPAddress.Parse(parts[0]), int.Parse(parts[1])));
+                    options.KnownIPNetworks.Add(new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse(parts[0]), int.Parse(parts[1])));
                 }
             });
 
