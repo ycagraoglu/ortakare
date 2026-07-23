@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Ortakare.Api.Infrastructure.Proxy;
-using AspNetForwardedHeadersOptions = Microsoft.AspNetCore.Builder.ForwardedHeadersOptions;
+using AspNetForwardedHeadersOptions = Microsoft.AspNetCore.HttpOverrides.ForwardedHeadersOptions;
 
 namespace Ortakare.IntegrationTests;
 
@@ -29,7 +29,7 @@ public sealed class ForwardedHeadersConfigurationTests
 
         Assert.Equal(ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto, options.ForwardedHeaders);
         Assert.Equal(1, options.ForwardLimit);
-        Assert.Contains(global::System.Net.IPAddress.Loopback, options.KnownProxies);
+        Assert.Contains(System.Net.IPAddress.Loopback, options.KnownProxies);
     }
 
     [Fact]

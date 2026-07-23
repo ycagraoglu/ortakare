@@ -17,7 +17,7 @@ public sealed class NotificationOutboxWriter(OrtakareDbContext dbContext)
         string severity = NotificationSeverities.Info,
         string? actionUrl = null)
     {
-        if (actionUrl is not null && (!actionUrl.StartsWith("/", StringComparison.Ordinal) || actionUrl.StartsWith("//", StringComparison.Ordinal)))
+        if (actionUrl is not null && (!actionUrl.StartsWith('/', StringComparison.Ordinal) || actionUrl.StartsWith("//", StringComparison.Ordinal)))
         {
             throw new ArgumentException("Notification action URL must be a local absolute application route.", nameof(actionUrl));
         }

@@ -1,0 +1,38 @@
+# Frontend Production Hardening Roadmap
+
+## Amaç
+
+Ortakare frontend uygulamasını React, TypeScript ve Vite tabanlı; güvenli, gözlemlenebilir, test edilebilir ve bağımsız deploy edilebilir bir PWA olarak hazırlamak.
+
+## Başlangıç durumu
+
+Frontend klasöründe yalnızca planlama README'si bulunmaktadır. Bu nedenle seri, mevcut uygulamayı iyileştirmekten önce production-ready foundation kurarak başlayacaktır.
+
+## Yol haritası
+
+1. ✅ **Frontend Foundation** — Vite, React, TypeScript strict mode, klasör yapısı, environment doğrulaması, temel scriptler.
+2. ✅ **API Client Standardı** — merkezi HTTP client, ApiResult normalizasyonu, timeout, cancellation, hata sınıflandırması.
+3. ✅ **Authentication Session** — access/refresh token akışı, tekilleştirilmiş refresh, session restore ve logout politikası.
+4. ✅ **TanStack Query Standardı** — QueryClient, query-key factory, stale/cache süreleri, invalidation kuralları.
+5. ✅ **Routing ve Code Splitting** — route grupları, lazy loading, owner/public yüzey ayrımı, metadata, breadcrumb, 404/403 ve chunk recovery.
+6. ✅ **Form Standardı** — React Hook Form, Zod, backend validation eşlemesi, dirty-state koruması ve login referans uygulaması.
+7. ✅ **UI State Standardı** — loading, skeleton, empty, error, retry ve disabled-state kuralları.
+8. ✅ **Global Error Handling** — application error boundary, route fallback, chunk-load recovery, offline/network/timeout ayrımı ve correlation-id görünümü.
+9. ✅ **Upload Hardening** — istemci ön kontrolü, progress, cancellation, client upload id, duplicate-submit koruması ve güvenli preview.
+10. ✅ **PWA Hardening** — manifest, güvenli service worker cache stratejisi, kontrollü update akışı ve offline sınırları.
+11. ✅ **Frontend Security** — memory/session token sınırı, API origin koruması, trusted URL/download yardımcıları, CSP ve IIS güvenlik başlıkları.
+12. ✅ **Accessibility** — skip link, route title ve live announcement, focus yönetimi, reduced motion ve erişilebilir dialog standardı.
+13. ✅ **Observability** — privacy-safe telemetry sözleşmesi, route/API/error ölçümleri, Core Web Vitals, correlation-id ve release context.
+14. ✅ **Test Strategy** — Vitest setup, Testing Library render helper, MSW network mock standardı, güvenlik/accessibility regresyon testleri ve coverage eşikleri.
+15. ✅ **Frontend CI** — GitHub Actions kısıtı için local-first verify komutu, manuel workflow, coverage/build zinciri ve bundle budget.
+16. ✅ **Production Readiness Review** — release readiness ve smoke scriptleri, IIS deployment/rollback planı, cache politikası ve açık GO/NO-GO kontrol listesi. Mevcut karar doğrulamalar tamamlanana kadar NO-GO'dur.
+
+## Bağlayıcı kurallar
+
+- TypeScript `strict` açık olacaktır.
+- Component içinde doğrudan `fetch` veya dağınık HTTP client kullanılmayacaktır.
+- Server state TanStack Query ile; local UI state React state ile yönetilecektir.
+- Access token URL, query string veya loglara yazılmayacaktır.
+- Public guest yüzeyi ile authenticated owner yüzeyi route ve layout seviyesinde ayrılacaktır.
+- Her tamamlanan madde `docs/frontend-hardening` altında numaralı dokümanla kayıt altına alınacaktır.
+- Build/test sonucu çalıştırılmadan başarılı sayılmayacaktır.

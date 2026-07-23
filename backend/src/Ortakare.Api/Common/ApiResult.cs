@@ -17,7 +17,7 @@ public sealed class ApiResult<T> : ApiResult
 {
     public T? Data { get; init; }
 
-    public static ApiResult<T> Success(
+    public static new ApiResult<T> Success(
         T data,
         string? message = null,
         int statusCode = StatusCodes.Status200OK) =>

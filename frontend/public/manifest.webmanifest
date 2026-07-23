@@ -1,0 +1,21 @@
+{
+  "name": "Ortakare",
+  "short_name": "Ortakare",
+  "description": "Etkinlik fotoğraf paylaşım ve yönetim platformu",
+  "lang": "tr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#111827",
+  "categories": ["photo", "productivity"],
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

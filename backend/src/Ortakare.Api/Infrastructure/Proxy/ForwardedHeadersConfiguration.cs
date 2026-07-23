@@ -1,7 +1,8 @@
 using System.Net;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Options;
-using AspNetForwardedHeadersOptions = Microsoft.AspNetCore.Builder.ForwardedHeadersOptions;
+using AspNetForwardedHeadersOptions = Microsoft.AspNetCore.HttpOverrides.ForwardedHeadersOptions;
+using AspNetIPNetwork = Microsoft.AspNetCore.HttpOverrides.IPNetwork;
 
 namespace Ortakare.Api.Infrastructure.Proxy;
 
@@ -33,7 +34,7 @@ public static class ForwardedHeadersConfiguration
                 options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
                 options.ForwardLimit = configured.ForwardLimit;
                 options.KnownProxies.Clear();
-                options.KnownIPNetworks.Clear();
+                options.KnownNetworks.Clear();
 
                 foreach (var proxy in configured.KnownProxies)
                     options.KnownProxies.Add(IPAddress.Parse(proxy));
@@ -41,7 +42,7 @@ public static class ForwardedHeadersConfiguration
                 foreach (var network in configured.KnownNetworks)
                 {
                     var parts = network.Split('/', 2);
-                    options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse(parts[0]), int.Parse(parts[1])));
+                    options.KnownNetworks.Add(new AspNetIPNetwork(IPAddress.Parse(parts[0]), int.Parse(parts[1])));
                 }
             });
 

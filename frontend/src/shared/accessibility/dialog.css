@@ -1,0 +1,34 @@
+.accessible-dialog {
+  width: min(36rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 0;
+  border: 0;
+  border-radius: 0.75rem;
+  overflow: auto;
+}
+
+.accessible-dialog::backdrop {
+  background: rgb(17 24 39 / 65%);
+}
+
+.accessible-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.accessible-dialog__header h2,
+.accessible-dialog__header p {
+  margin: 0;
+}
+
+.accessible-dialog__header p {
+  margin-top: 0.5rem;
+}
+
+.accessible-dialog__body {
+  padding: 1.25rem;
+}
